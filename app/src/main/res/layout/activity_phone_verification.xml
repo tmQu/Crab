@@ -1,0 +1,82 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:background="@color/white"
+    >
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        app:layout_constraintTop_toTopOf="parent"
+        android:orientation="vertical"
+        android:layout_marginTop="20dp"
+        android:layout_margin="10dp"
+        >
+        <TextView
+            android:id="@+id/message"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Nhập mã gồm 6 chữ số đã được gửi đến số điện thoại của bạn"
+            />
+
+        <com.google.android.material.textfield.TextInputLayout
+            android:id="@+id/otp_input"
+            android:layout_marginTop="72dp"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+
+            style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
+            app:boxStrokeWidth="0dp"
+            app:boxStrokeWidthFocused="0dp"
+            app:endIconMode="clear_text"
+            app:cursorColor="#D4F0DF"
+            app:hintEnabled="false"
+            >
+            <EditText
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:maxEms="6"
+                android:textSize="30sp"
+
+                android:hint="000000"
+                android:textColorHint="#C5C5C5"
+                android:inputType="number"
+                android:maxLength="6"
+
+                />
+        </com.google.android.material.textfield.TextInputLayout>
+        <TextView
+            android:id="@+id/error_message"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text=""
+            android:paddingLeft="20dp"
+            />
+    </LinearLayout>
+
+    <LinearLayout
+        android:id="@+id/resend_otp_group"
+        app:layout_constraintBottom_toBottomOf="parent"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="30dp"
+        >
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Bạn chưa nhận được mã ?"
+            android:textSize="20sp"
+            />
+
+    </LinearLayout>
+
+    <TextView
+        android:id="@+id/resend_otp_msg"
+        app:layout_constraintTop_toBottomOf="@id/resend_otp_group"
+        app:layout_constraintLeft_toLeftOf="parent"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Gửi lại mã sau 60s"
+        />
+</androidx.constraintlayout.widget.ConstraintLayout>

@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "391014884668",
+    "project_id": "crab-2fd28",
+    "storage_bucket": "crab-2fd28.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:391014884668:android:996ebd563d7b5cc22dea39",
+        "android_client_info": {
+          "package_name": "tkpm.com.crab"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBpJHUU5EwzoR_avhO6UXgh_yiqWZmg5RU"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
