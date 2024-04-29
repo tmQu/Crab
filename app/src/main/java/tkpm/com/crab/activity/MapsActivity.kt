@@ -28,6 +28,7 @@ import com.google.android.gms.maps.GoogleMap
 import com.google.android.gms.maps.GoogleMap.OnMarkerDragListener
 import com.google.android.gms.maps.OnMapReadyCallback
 import com.google.android.gms.maps.SupportMapFragment
+import com.google.android.gms.maps.model.BitmapDescriptorFactory
 import com.google.android.gms.maps.model.LatLng
 import com.google.android.gms.maps.model.Marker
 import com.google.android.gms.maps.model.MarkerOptions
@@ -71,12 +72,20 @@ class MapsActivity: AppCompatActivity(), OnMapReadyCallback {
 
     private lateinit var currentPosition: LatLng
     private lateinit var full_addr: String
+
+    // Marker
+    private var destinationMarker: Marker? = null
+    private var currentMarker: Marker? = null
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContentView(R.layout.activity_maps)
 
         checkLocationPermissions()
+
+        // Set marker for current location
+        setCurrentLocation()
 
         // Define a variable to hold the Places API key.
         val apiKey = BuildConfig.MAPS_API_KEY
@@ -102,7 +111,7 @@ class MapsActivity: AppCompatActivity(), OnMapReadyCallback {
         handleAutocompleteDistrict()
 
         findViewById<ImageButton>(R.id.here_btn).setOnClickListener {
-            getDeviceLocation()
+            setCurrentLocation()
         }
 
         findViewById<MaterialButton>(R.id.navigate_btn).setOnClickListener {
@@ -111,7 +120,8 @@ class MapsActivity: AppCompatActivity(), OnMapReadyCallback {
             intent.putExtra("lat", currentPosition.latitude)
             intent.putExtra("lng", currentPosition.longitude)
             setResult(RESULT_OK, intent)
-            finish()
+            Toast.makeText(this, "Address: ${getFullAddr()}", Toast.LENGTH_SHORT).show()
+//            finish()
         }
     }
 
@@ -212,15 +222,11 @@ class MapsActivity: AppCompatActivity(), OnMapReadyCallback {
                     {
                         temp_addr += ", $wardName"
                     }
-                    {
-                        temp_addr += ", $wardName"
-                    }
                     autocomplete_addr.setText(temp_addr)
-
-
                 }
 
                 currentPosition = place.latLng
+                setDestinationLocationMarker(place.latLng)
                 moveCamera(place.latLng, 15f)
 
             }
@@ -250,16 +256,23 @@ class MapsActivity: AppCompatActivity(), OnMapReadyCallback {
             }
     }
 
-    private fun moveCamera(latLng: LatLng, fl: Float) {
-        mMap.clear()
-        mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(latLng, 13f))
-        val markerOptions = MarkerOptions().position(latLng)
-            .title("Your Location").draggable(true)
-        mMap.addMarker(markerOptions)
-
-
+    private fun moveCamera(latLng: LatLng, zoom: Float = 15f) {
+        mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(latLng, zoom))
     }
 
+    private fun setCurrentLocationMarker(latLng: LatLng) {
+        currentMarker?.remove()
+        val markerOptions = MarkerOptions().position(latLng)
+            .icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_AZURE))
+        currentMarker = mMap.addMarker(markerOptions)
+    }
+
+    private fun setDestinationLocationMarker(latLng: LatLng) {
+        destinationMarker?.remove()
+        val markerOptions = MarkerOptions().position(latLng)
+            .icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_RED))
+        destinationMarker = mMap.addMarker(markerOptions)
+    }
 
     private fun initMap()
     {
@@ -292,73 +305,31 @@ class MapsActivity: AppCompatActivity(), OnMapReadyCallback {
         }
     }
 
-//    @RequiresPermission(allOf = [Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_WIFI_STATE])
-//    private fun getDeviceLocation()
-//    {
-//        if (locationPermissionGranted) {
-//            // Use fields to define the data types to return.
-//            val placeFields = listOf(Place.Field.NAME, Place.Field.LAT_LNG)
-//
-//            val request = FindCurrentPlaceRequest.newInstance(placeFields)
-//
-//            // Get the likely places - that is, the businesses and other points of interest that
-//            // are the best match for the device's current location.
-//            val placeResult = placesClient.findCurrentPlace(request)
-//            placeResult.addOnCompleteListener { task ->
-//                if (task.isSuccessful && task.result != null) {
-//                    val likelyPlaces = task.result
-//
-//                    val count = 1
-//                    var i = 0
-//                    for (placeLikelihood in likelyPlaces?.placeLikelihoods ?: emptyList()) {
-//                        // Build a list of likely places to show the user.
-////                        autocomplete_addr.setText(placeLikelihood.place.address)
-////                        address = placeLikelihood.place.address
-//                        currentPosition = placeLikelihood.place.latLng
-//                        moveCamera(currentPosition, 15f)
-//                        i++
-//                        if (i > count - 1) {
-//                            break
-//                        }
-//                    }
-//                } else {
-//                    Log.e(TAG, "Exception: %s", task.exception)
-//                }
-//            }
-//        }
-//    }
-
-    private fun getDeviceLocation()
-    {
+    private fun setCurrentLocation() {
         locationProviderClient = LocationServices.getFusedLocationProviderClient(this)
-        try {
-            if(true)
-            {
 
-                val locationResult = locationProviderClient.lastLocation
-                locationResult.addOnCompleteListener {
-                    if(it.isSuccessful)
+        try
+        {
+            val locationRequest = locationProviderClient.lastLocation
+            locationRequest.addOnCompleteListener {
+                if(it.isSuccessful)
+                {
+                    val location = it.result
+                    if (location != null)
                     {
-                        val location = it.result
-                        if(location != null)
-                        {
-                            Log.i("Location", "Location: ${location.latitude}, ${location.longitude}")
-                            currentPosition = LatLng(location.latitude, location.longitude)
-                            moveCamera(LatLng(location.latitude, location.longitude), 15f)
-                        }
+                        Log.i("Location", "Location: ${location.latitude}, ${location.longitude}")
+                        currentPosition = LatLng(location.latitude, location.longitude)
+                        setCurrentLocationMarker(currentPosition)
+                        moveCamera(LatLng(location.latitude, location.longitude), 15f)
                     }
                 }
-
             }
         }
         catch (error: SecurityException)
         {
             Log.e(TAG, "Error getting device location: ${error.message}")
         }
-
     }
-
-
 
     override fun onMapReady(googleMap: GoogleMap) {
         Toast.makeText(this, "Map is ready", Toast.LENGTH_SHORT).show()
@@ -379,7 +350,7 @@ class MapsActivity: AppCompatActivity(), OnMapReadyCallback {
         mMap.uiSettings.isMyLocationButtonEnabled = true
         mMap.uiSettings.isZoomControlsEnabled = true
         mMap.uiSettings.isCompassEnabled = true
-        getDeviceLocation()
+        setCurrentLocation()
 
 
         mMap.setOnMarkerDragListener(object: OnMarkerDragListener {
@@ -395,18 +366,6 @@ class MapsActivity: AppCompatActivity(), OnMapReadyCallback {
 
             }
         })
-
-        mMap.setOnMapLongClickListener {
-            mMap.clear()
-            val markerOptions = MarkerOptions().position(it)
-                .title("Your Location").draggable(true)
-            mMap.addMarker(markerOptions)
-
-        }
-
-
-
-
     }
 
 
