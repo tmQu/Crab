@@ -3,6 +3,8 @@ package tkpm.com.crab.activity.authentication.phone
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
+import android.os.StrictMode
+import android.os.StrictMode.ThreadPolicy
 import android.util.Log
 import android.view.inputmethod.InputMethodManager
 import android.widget.TextView
@@ -18,7 +20,12 @@ import com.google.firebase.auth.FirebaseAuthMissingActivityForRecaptchaException
 import com.google.firebase.auth.PhoneAuthCredential
 import com.google.firebase.auth.PhoneAuthOptions
 import com.google.firebase.auth.PhoneAuthProvider
+import okhttp3.MediaType.Companion.toMediaType
+import okhttp3.OkHttpClient
+import okhttp3.Request
+import okhttp3.RequestBody.Companion.toRequestBody
 import tkpm.com.crab.R
+import java.io.IOException
 import java.util.concurrent.TimeUnit
 
 
@@ -27,7 +34,7 @@ class PhoneVerificationActivity : AppCompatActivity() {
 
     private val TAG = "PhoneVerificationActivity"
     private lateinit var auth: FirebaseAuth
-
+    private val client = OkHttpClient()
 
     private var storedVerificationId: String = ""
     private var phoneNumber: String = ""
@@ -105,6 +112,7 @@ class PhoneVerificationActivity : AppCompatActivity() {
                     Log.d(TAG, "signInWithCredential:success")
                     Toast.makeText(this, "Login Success", Toast.LENGTH_SHORT).show()
                     val user = task.result?.user
+                    getUserFromServer()
                 } else {
                     // Sign in failed, display a message and update the UI
                     Log.w(TAG, "signInWithCredential:failure", task.exception)
@@ -128,6 +136,42 @@ class PhoneVerificationActivity : AppCompatActivity() {
 
                 }
             }
+    }
+
+    private fun getUserFromServer() {
+        // Get user from server
+        val baseUrl = resources.getString(R.string.base_url)
+        post("$baseUrl/api/accounts/sign-in-mobile", "{\"phone\": \"${phoneNumber}\", role: \"customer\"}")
+
+    }
+
+    @Throws(IOException::class)
+    fun post(url: String, requestBody: String): String {
+        val policy = ThreadPolicy.Builder()
+            .permitAll().build()
+        StrictMode.setThreadPolicy(policy)
+        val client = OkHttpClient()
+
+        val body = requestBody.toRequestBody("application/json".toMediaType())
+
+        val request = Request.Builder()
+            .url(url)
+            .post(body)
+            .build()
+
+        val response = client.newCall(request).execute()
+        val res = response.body?.string() ?: ""
+
+        if(response.isSuccessful)
+        {
+            Log.d(TAG, "Response: $res")
+        }
+        else
+        {
+            Log.d(TAG, "Response: ${response.code}")
+        }
+        Log.d(TAG, "Response:")
+        return res
     }
 
 

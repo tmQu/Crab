@@ -5,4 +5,5 @@
     <string name="city">Thành phố\n</string>
     <!-- TODO: Remove or change this placeholder text -->
     <string name="hello_blank_fragment">Hello blank fragment</string>
+    <string name="base_url">http://192.168.99.128:3000</string>
 </resources>
