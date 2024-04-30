@@ -21,83 +21,38 @@
         map:layout_constraintEnd_toEndOf="parent"
         android:layout_margin="20dp"
         map:cardCornerRadius="5dp"
-        map:cardBackgroundColor="@color/white"
+        map:cardBackgroundColor="@android:color/transparent"
         map:contentPadding="10dp"
         >
-        <LinearLayout
-            android:orientation="vertical"
+        <com.google.android.material.textfield.TextInputLayout
+            android:layout_marginTop="20dp"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
+            map:layout_goneMarginTop="40dp"
+            app:endIconMode="clear_text"
+            app:endIconTint="#989898"
+            app:hintEnabled="false"
+            app:boxStrokeWidth="0dp"
+            app:boxStrokeWidthFocused="0dp"
+            android:textColor="#707070"
+            android:textColorHint="#707070"
             >
-
-            <LinearLayout
-                android:orientation="horizontal"
+            <tkpm.com.crab.CustomeAutocompleteTextView
+                android:drawableStart="@drawable/ic_search"
+                android:drawablePadding="20dp"
+                android:id="@+id/autocomplete_addr"
                 android:layout_width="match_parent"
-                android:layout_height="wrap_content">
-                <com.google.android.material.textfield.TextInputLayout
-                    android:layout_weight="1"
-                    android:layout_width="0dp"
-                    android:layout_height="match_parent"
-                    android:layout_marginRight="2dp"
-                    app:boxStrokeWidth="1dp"
-                    app:boxStrokeWidthFocused="1dp"
-                    style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
-                    android:hint="@string/district"
-                    >
+                android:layout_height="60dp"
+                android:background="@drawable/bg_search_box"
+                android:hint="Search your address"
+                android:inputType="text"
+                android:padding="16dp"
+                android:textCursorDrawable="@null"
+                android:textColor="#707070"
+                android:textColorHint="#707070"
 
-                    <tkpm.com.crab.CustomeAutocompleteTextView
-                        android:id="@+id/autocomplete_district"
-                        android:padding="5dp"
-                        android:layout_width="match_parent"
-                        android:layout_height="match_parent"
-                        android:backgroundTint="@color/white" />
-                </com.google.android.material.textfield.TextInputLayout>
-                <com.google.android.material.textfield.TextInputLayout
-                    android:id="@+id/edt_city"
-                    android:layout_width="0dp"
-                    android:layout_weight="1"
-                    android:layout_height="match_parent"
-                    style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
-                    android:hint="@string/city"
-                    >
-                    <com.google.android.material.textfield.TextInputEditText
-                        android:layout_width="match_parent"
-                        android:layout_height="match_parent"
-                        android:text="Hồ Chí Minh"
-                        android:editable="false"
-                        />
-
-                </com.google.android.material.textfield.TextInputLayout>
-
-            </LinearLayout>
-            <com.google.android.material.textfield.TextInputLayout
-                android:layout_marginTop="20dp"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-
-                map:layout_goneMarginTop="40dp"
-                app:endIconMode="clear_text"
-                app:endIconTint="#989898"
-                android:hint="number, street, ward"
-                style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
-                >
-                <tkpm.com.crab.CustomeAutocompleteTextView
-
-                    android:id="@+id/autocomplete_addr"
-                    android:layout_width="match_parent"
-                    android:layout_height="60dp"
-
-                    android:ems="10"
-                    android:inputType="text"
-                    android:textCursorDrawable="@null"
-                    android:padding="5dp"
-                    android:backgroundTint="@color/white"
-
-                    />
-            </com.google.android.material.textfield.TextInputLayout>
-
-
-        </LinearLayout>
+                />
+        </com.google.android.material.textfield.TextInputLayout>
 
 
     </com.google.android.material.card.MaterialCardView>
@@ -115,14 +70,13 @@
 
 
     <com.google.android.material.button.MaterialButton
-        android:id="@+id/navigate_btn"
+        android:id="@+id/request_btn"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        map:layout_constraintBottom_toBottomOf="parent"
-        map:layout_constraintStart_toStartOf="parent"
-        map:layout_constraintEnd_toEndOf="parent"
         android:layout_margin="20dp"
-        android:text="Navigate"
         android:backgroundTint="@color/black"
-        />
+        android:text="Request"
+        map:layout_constraintBottom_toBottomOf="parent"
+        map:layout_constraintEnd_toEndOf="parent"
+        map:layout_constraintStart_toStartOf="parent" />
 </androidx.constraintlayout.widget.ConstraintLayout>
