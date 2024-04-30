@@ -1,5 +1,6 @@
 package tkpm.com.crab.activity.authentication.phone
 
+import android.content.Intent
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
@@ -19,6 +20,12 @@ import com.google.firebase.auth.PhoneAuthCredential
 import com.google.firebase.auth.PhoneAuthOptions
 import com.google.firebase.auth.PhoneAuthProvider
 import tkpm.com.crab.R
+import tkpm.com.crab.activity.MapsActivity
+import tkpm.com.crab.api.APICallback
+import tkpm.com.crab.api.APIService
+import tkpm.com.crab.credential_service.CredentialService
+import tkpm.com.crab.objects.AccountRequest
+import tkpm.com.crab.objects.AccountResponse
 import java.util.concurrent.TimeUnit
 
 
@@ -103,8 +110,33 @@ class PhoneVerificationActivity : AppCompatActivity() {
                 if (task.isSuccessful) {
                     // Sign in success, update UI with the signed-in user's information
                     Log.d(TAG, "signInWithCredential:success")
-                    Toast.makeText(this, "Login Success", Toast.LENGTH_SHORT).show()
                     val user = task.result?.user
+
+                    val accountRequest = AccountRequest(
+                        phone = user?.phoneNumber ?: "",
+                        uid = user?.uid ?: ""
+                    )
+
+                    // Sign in/Sign up with firebase API
+                    val context = this
+                    APIService().doPost<AccountResponse>("firebase/auth", accountRequest, object :
+                        APICallback<Any> {
+                        override fun onSuccess(data: Any) {
+                            data as AccountResponse
+
+                            // Set the token
+                            CredentialService().set(data.token)
+
+                            // Move the MapsActivity when the user is logged in
+                            val intent = Intent(context, MapsActivity::class.java)
+                            startActivity(intent)
+                            finish()
+                        }
+
+                        override fun onError(error: Throwable) {
+                            Log.e(TAG, "Error: ${error.message}")
+                        }
+                    })
                 } else {
                     // Sign in failed, display a message and update the UI
                     Log.w(TAG, "signInWithCredential:failure", task.exception)
