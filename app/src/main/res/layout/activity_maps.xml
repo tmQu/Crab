@@ -1,31 +1,31 @@
 <?xml version="1.0" encoding="utf-8"?>
-<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<androidx.coordinatorlayout.widget.CoordinatorLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:map="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     xmlns:app="http://schemas.android.com/apk/res-auto"
-    tools:context=".activity.MapsActivity">
-    <fragment
-        android:id="@+id/map"
-        android:name="com.google.android.gms.maps.SupportMapFragment"
+    tools:context=".activity.customer.MapsActivity">
+    <androidx.constraintlayout.widget.ConstraintLayout
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        />
-    <com.google.android.material.card.MaterialCardView
-        android:id="@+id/input_group"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        map:layout_constraintTop_toTopOf="parent"
-        map:layout_constraintStart_toStartOf="parent"
-        map:layout_constraintEnd_toEndOf="parent"
-        android:layout_margin="20dp"
-        map:cardCornerRadius="5dp"
-        map:cardBackgroundColor="@android:color/transparent"
-        map:contentPadding="10dp"
         >
+        <fragment
+            android:id="@+id/map"
+            android:name="com.google.android.gms.maps.SupportMapFragment"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            />
+
         <com.google.android.material.textfield.TextInputLayout
-            android:layout_marginTop="20dp"
+            android:id="@+id/input_group"
+            map:layout_constraintTop_toTopOf="parent"
+            map:layout_constraintStart_toStartOf="parent"
+            map:layout_constraintEnd_toEndOf="parent"
+            android:layout_marginTop="40dp"
+            android:layout_marginLeft="20dp"
+            android:layout_marginRight="20dp"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             map:layout_goneMarginTop="40dp"
@@ -55,28 +55,30 @@
         </com.google.android.material.textfield.TextInputLayout>
 
 
-    </com.google.android.material.card.MaterialCardView>
+        <ImageButton
+            android:id="@+id/here_btn"
+            android:layout_width="60dp"
+            android:layout_height="60dp"
+            map:layout_constraintTop_toBottomOf="@id/input_group"
+            map:layout_constraintRight_toRightOf="@id/input_group"
+            android:scaleType="fitXY"
+            android:background="@null"
+            />
 
 
-    <ImageButton
-        android:id="@+id/here_btn"
-        android:layout_width="60dp"
-        android:layout_height="60dp"
-        map:layout_constraintTop_toBottomOf="@id/input_group"
-        map:layout_constraintRight_toRightOf="@id/input_group"
-        android:scaleType="fitXY"
-        android:background="@null"
+<!--        <com.google.android.material.button.MaterialButton-->
+<!--            android:id="@+id/request_btn"-->
+<!--            android:layout_width="match_parent"-->
+<!--            android:layout_height="wrap_content"-->
+<!--            android:layout_margin="20dp"-->
+<!--            android:backgroundTint="@color/black"-->
+<!--            android:text="Request"-->
+<!--            map:layout_constraintBottom_toBottomOf="parent"-->
+<!--            map:layout_constraintEnd_toEndOf="parent"-->
+<!--            map:layout_constraintStart_toStartOf="parent" />-->
+    </androidx.constraintlayout.widget.ConstraintLayout>
+    <include layout="@layout/bottom_choose_location"
         />
-
-
-    <com.google.android.material.button.MaterialButton
-        android:id="@+id/request_btn"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_margin="20dp"
-        android:backgroundTint="@color/black"
-        android:text="Request"
-        map:layout_constraintBottom_toBottomOf="parent"
-        map:layout_constraintEnd_toEndOf="parent"
-        map:layout_constraintStart_toStartOf="parent" />
-</androidx.constraintlayout.widget.ConstraintLayout>
+    <include layout="@layout/bottom_type_vehicle"
+        />
+</androidx.coordinatorlayout.widget.CoordinatorLayout>
