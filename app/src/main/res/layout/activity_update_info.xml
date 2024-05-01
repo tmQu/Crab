@@ -48,7 +48,6 @@
 
     <Button
         android:id="@+id/update_info_button"
-        style="@style/Widget.Material3.Button.ElevatedButton"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:layout_marginStart="32dp"

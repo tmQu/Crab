@@ -56,7 +56,7 @@
         app:layout_constraintTop_toBottomOf="@id/time"
         app:layout_constraintLeft_toLeftOf="parent"
         app:layout_constraintRight_toRightOf="parent"
-        android:backgroundTint="@color/primary_color"
+        android:backgroundTint="@color/md_theme_primary"
         android:layout_marginTop="20dp"
         />
 

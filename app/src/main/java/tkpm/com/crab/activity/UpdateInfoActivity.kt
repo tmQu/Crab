@@ -146,6 +146,8 @@ class UpdateInfoActivity : AppCompatActivity() {
 
                             // Move to the MapsActivity
                             val intent = Intent(this@UpdateInfoActivity, MapsActivity::class.java)
+                            // Add flags to clear the back stack
+                            intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
                             startActivity(intent)
                             finish()
                         }
