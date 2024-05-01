@@ -5,7 +5,7 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     tools:context=".activity.authentication.LoginActivity"
-    android:background="@color/primary_color"
+    android:background="@color/md_theme_primary"
     >
     <ImageView
         android:id="@+id/logo"
@@ -51,7 +51,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:text="Đăng nhập"
-            android:backgroundTint="@color/primary_color"
+            android:backgroundTint="@color/md_theme_primary"
             android:layout_marginRight="30dp"
             android:layout_marginLeft="30dp"
             />
