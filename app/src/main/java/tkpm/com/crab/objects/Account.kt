@@ -13,6 +13,13 @@ data class AccountRequest(
 
 data class AccountResponse(
     val token: String,
-    val newUser: Boolean,
-    val user: AccountRequest
+)
+
+data class InternalAccount(
+    @SerializedName("_id")
+    val id: String = "",
+    val name: String = "",
+    val phone: String = "",
+    val role: String = "",
+    val avatar: String = "",
 )

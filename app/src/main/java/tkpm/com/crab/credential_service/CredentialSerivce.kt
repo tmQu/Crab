@@ -8,6 +8,8 @@ import android.util.Log
 import androidx.core.content.ContextCompat.startActivity
 import com.auth0.android.jwt.JWT
 import tkpm.com.crab.MainActivity
+import tkpm.com.crab.objects.AccountRequest
+import tkpm.com.crab.objects.InternalAccount
 import java.io.File
 import java.io.FileInputStream
 import java.io.FileOutputStream
@@ -37,9 +39,7 @@ class CredentialService {
             val jwt = JWT(credentialJWT)
 
             // Get id from the credential
-            val credential = jwt.getClaim("_id").asString()!!
-
-            return credential
+            jwt.getClaim("_id").asString()!!
 
         } catch (t: Throwable) {
             // Handle exception
@@ -117,50 +117,56 @@ class CredentialService {
         }
     }
 
-    fun getJWTToken(): String {
-        // Get the credential from Credential file
+    fun getAll(): InternalAccount {
         return try {
-            val credentialFile = File(CREDENTIAL_DIR)
-            if (!credentialFile.exists()) {
-                return ""
+            val credentileFile = File(CREDENTIAL_DIR)
+            if (!credentileFile.exists()) {
+                AccountRequest()
             }
 
             val inputStream: InputStream = FileInputStream(CREDENTIAL_DIR)
+            val credentialJWT = inputStream.bufferedReader().use { it.readText() }
 
-            // Read the credential from the file
-            val token = inputStream.bufferedReader().use { it.readText() }
+            val jwt = JWT(credentialJWT)
 
-            return token
+            val id = jwt.getClaim("_id").asString()
+            val phone = jwt.getClaim("phone").asString()
+            val name = jwt.getClaim("name").asString()
+            val role = jwt.getClaim("role").asString()
+            val avatar = jwt.getClaim("avatar").asString()
 
+            InternalAccount(
+                id = id ?: "",
+                phone = phone ?: "",
+                name = name ?: "",
+                role = role ?: "",
+                avatar = avatar ?: ""
+            )
         } catch (t: Throwable) {
-            // Handle exception
-            Log.e("CREDENTIAL_SERVICE", "Error in getting credential", t)
-            ""
+            Log.e("CREDENTIAL_SERVICE", "Error in getting all credential", t)
+            InternalAccount()
         }
     }
 
-    fun isExpired(): Boolean {
-        // Get the credential from Credential file
+    fun isNewUser(): Boolean {
         return try {
-            val credentialFile = File(CREDENTIAL_DIR)
-            if (!credentialFile.exists()) {
-                return true
+            val credentileFile = File(CREDENTIAL_DIR)
+            if (!credentileFile.exists()) {
+                return false
             }
 
             val inputStream: InputStream = FileInputStream(CREDENTIAL_DIR)
-
-            // Read the credential from the file
             val credentialJWT = inputStream.bufferedReader().use { it.readText() }
+
             val jwt = JWT(credentialJWT)
 
-            // Get exp from the credential
-            val exp = jwt.getClaim("exp").asDate()!!
-            exp.before(java.util.Date())
+            val id = jwt.getClaim("_id").asString()
+            val name = jwt.getClaim("name").asString()
 
+            id != null && name == null
         } catch (t: Throwable) {
-            // Handle exception
-            Log.e("CREDENTIAL_SERVICE", "Error in getting credential", t)
-            true
+            Log.e("CREDENTIAL_SERVICE", "Error in getting all credential", t)
+            false
         }
     }
 }

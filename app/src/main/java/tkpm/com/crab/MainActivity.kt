@@ -8,11 +8,13 @@ import android.view.animation.AnimationUtils
 import android.widget.ImageView
 import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
+import androidx.appcompat.app.AppCompatDelegate
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
 import com.google.firebase.FirebaseApp
 import tkpm.com.crab.activity.customer.MapsActivity
+import tkpm.com.crab.activity.UpdateInfoActivity
 import tkpm.com.crab.activity.authentication.phone.PhoneLoginActivity
 import tkpm.com.crab.credential_service.CredentialService
 
@@ -29,6 +31,9 @@ class MainActivity : AppCompatActivity() {
         enableEdgeToEdge()
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
+
+        // Disable dark mode
+        AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_NO)
 
         // hide the system bar
         val windowInsetsController = WindowCompat.getInsetsController(window, window.decorView)
@@ -75,8 +80,13 @@ class MainActivity : AppCompatActivity() {
                 finish()
             } else
             {
-                // get user information and save to shared preference
-                val intent = Intent(this@MainActivity, MapsActivity::class.java)
+                // If user login, redirect to update info page if user is new user
+                val intent =
+                    if (CredentialService().isNewUser())
+                        Intent(this@MainActivity, UpdateInfoActivity::class.java)
+                    else
+                        Intent(this@MainActivity, MapsActivity::class.java)
+
                 startActivity(intent)
                 finish()
             }

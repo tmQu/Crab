@@ -4,8 +4,6 @@ import android.content.Intent
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
-import android.os.StrictMode
-import android.os.StrictMode.ThreadPolicy
 import android.util.Log
 import android.view.inputmethod.InputMethodManager
 import android.widget.TextView
@@ -21,15 +19,9 @@ import com.google.firebase.auth.FirebaseAuthMissingActivityForRecaptchaException
 import com.google.firebase.auth.PhoneAuthCredential
 import com.google.firebase.auth.PhoneAuthOptions
 import com.google.firebase.auth.PhoneAuthProvider
-import okhttp3.MediaType.Companion.toMediaType
-import okhttp3.OkHttpClient
-import okhttp3.Request
-import okhttp3.RequestBody.Companion.toRequestBody
-import tkpm.com.crab.BuildConfig
 import tkpm.com.crab.R
-
-import java.io.IOException
 import tkpm.com.crab.activity.customer.MapsActivity
+import tkpm.com.crab.activity.UpdateInfoActivity
 import tkpm.com.crab.api.APICallback
 import tkpm.com.crab.api.APIService
 import tkpm.com.crab.credential_service.CredentialService
@@ -40,11 +32,8 @@ import java.util.concurrent.TimeUnit
 
 
 class PhoneVerificationActivity : AppCompatActivity() {
-
-
     private val TAG = "PhoneVerificationActivity"
     private lateinit var auth: FirebaseAuth
-    private val client = OkHttpClient()
 
     private var storedVerificationId: String = ""
     private var phoneNumber: String = ""
@@ -126,7 +115,6 @@ class PhoneVerificationActivity : AppCompatActivity() {
                     Log.d(TAG, "signInWithCredential:success")
                     val user = task.result?.user
 
-
                     val accountRequest = AccountRequest(
                         phone = user?.phoneNumber ?: "",
                         uid = user?.uid ?: ""
@@ -134,20 +122,25 @@ class PhoneVerificationActivity : AppCompatActivity() {
 
                     // Sign in/Sign up with firebase API
                     val context = this
-                    APIService().doPost<AccountResponse>("api/firebase/auth", accountRequest, object :
+                    APIService().doPost<AccountResponse>("firebase/auth", accountRequest, object :
                         APICallback<Any> {
                         override fun onSuccess(data: Any) {
                             data as AccountResponse
 
                             // Set the token
                             CredentialService().set(data.token)
+
                             // Move the MapsActivity when the user is logged in
-                            val intent = Intent(context, MapsActivity::class.java)
-                            loadingDialog.dismissDialog()
+                            // If the user is a new user, move to UpdateInfoActivity
+                            val intent =
+                                if (CredentialService().isNewUser()) {
+                                    Intent(context, UpdateInfoActivity::class.java)
+                                } else {
+                                    Intent(context, MapsActivity::class.java)
+                                }
+
                             startActivity(intent)
                             finish()
-
-
                         }
 
                         override fun onError(error: Throwable) {
@@ -155,7 +148,6 @@ class PhoneVerificationActivity : AppCompatActivity() {
                             loadingDialog.dismissDialog()
                         }
                     })
-
                 } else {
                     // Sign in failed, display a message and update the UI
                     Log.w(TAG, "signInWithCredential:failure", task.exception)
@@ -170,7 +162,7 @@ class PhoneVerificationActivity : AppCompatActivity() {
                         }
                         else
                             errorMsg.setText("Mã OTP không hợp lệ, bạn còn $tryCount lần thử")
-                        loadingDialog.dismissDialog()
+                            loadingDialog.dismissDialog()
                     }
                     else {
                         // Update UI
@@ -181,42 +173,6 @@ class PhoneVerificationActivity : AppCompatActivity() {
 
                 }
             }
-    }
-
-    private fun getUserFromServer() {
-        // Get user from server
-        val baseUrl = BuildConfig.BASE_URL
-        post("$baseUrl/api/accounts/sign-in-mobile", "{\"phone\": \"${phoneNumber}\", role: \"customer\"}")
-
-    }
-
-    @Throws(IOException::class)
-    fun post(url: String, requestBody: String): String {
-        val policy = ThreadPolicy.Builder()
-            .permitAll().build()
-        StrictMode.setThreadPolicy(policy)
-        val client = OkHttpClient()
-
-        val body = requestBody.toRequestBody("application/json".toMediaType())
-
-        val request = Request.Builder()
-            .url(url)
-            .post(body)
-            .build()
-
-        val response = client.newCall(request).execute()
-        val res = response.body?.string() ?: ""
-
-        if(response.isSuccessful)
-        {
-            Log.d(TAG, "Response: $res")
-        }
-        else
-        {
-            Log.d(TAG, "Response: ${response.code}")
-        }
-        Log.d(TAG, "Response:")
-        return res
     }
 
 

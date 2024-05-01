@@ -80,8 +80,6 @@ dependencies {
     // When using the BoM, you don't specify versions in Firebase library dependencies
     implementation("com.google.firebase:firebase-auth")
 
-    implementation("com.squareup.okhttp3:okhttp:4.12.0")
-
     // Use retrofit for network calls
     implementation("com.squareup.retrofit2:retrofit:2.11.0")
     implementation("com.squareup.retrofit2:converter-gson:2.11.0")
@@ -91,5 +89,11 @@ dependencies {
 
     // JWT Decoder
     implementation("com.auth0.android:jwtdecode:2.0.2")
+
+    // Round image view
+    implementation("de.hdodenhof:circleimageview:3.1.0")
+
+    // Picasso for image loading
+    implementation("com.squareup.picasso:picasso:2.8")
 }
 

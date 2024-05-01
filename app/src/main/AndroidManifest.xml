@@ -32,6 +32,9 @@
         <activity
             android:name=".activity.authentication.LoginActivity"
             android:exported="false" />
+        <activity
+            android:name=".activity.UpdateInfoActivity"
+            android:exported="false" />
 
         <meta-data
             android:name="com.google.android.gms.version"

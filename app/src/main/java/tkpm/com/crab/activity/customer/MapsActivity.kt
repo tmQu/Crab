@@ -59,6 +59,7 @@ import tkpm.com.crab.adapter.MapPredictionAdapter
 import tkpm.com.crab.adapter.TypeVehicleAdapter
 import tkpm.com.crab.api.APICallback
 import tkpm.com.crab.api.APIService
+import tkpm.com.crab.credential_service.CredentialService
 import tkpm.com.crab.objects.BookingRequest
 import tkpm.com.crab.objects.VehicleTypePrice
 import tkpm.com.crab.objects.VehilceTypePriceResponse
@@ -172,7 +173,7 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
 //        Log.i(TAG, "Destination location: ${destinationLocationAddress?.getAddressLine(0)?: ""}")
         val user = FirebaseAuth.getInstance().currentUser
         val phone = user?.phoneNumber ?: ""
-        val name = "nonmae"
+        val name = CredentialService().getAll().name
         val data = BookingRequest(
             currentMarker?.position?.latitude ?: 0.0,
             currentMarker?.position?.longitude ?: 0.0,
@@ -182,12 +183,12 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
             destinationAdress ?: "",
             name,
             phone,
-            "Nguyn Văn E",
+            name, // orderedBy
             vehicleType?.typeName ?: "",
             vehicleType?.fee ?: 0,
         )
 
-        APIService().doPost<Any>("api/bookings", data, object : APICallback<Any> {
+        APIService().doPost<Any>("bookings", data, object : APICallback<Any> {
             override fun onSuccess(result: Any) {
                 Toast.makeText(this@MapsActivity, "Success", Toast.LENGTH_SHORT).show()
             }
@@ -319,7 +320,7 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
         }
         val data = mapOf("distance" to distance/1000)
 
-        APIService().doPost<VehilceTypePriceResponse>("api/fee/get-fee", data, object : APICallback<Any> {
+        APIService().doPost<VehilceTypePriceResponse>("fee/get-fee", data, object : APICallback<Any> {
             override fun onSuccess(result: Any) {
 
                 val data = (result as VehilceTypePriceResponse).fee
@@ -335,10 +336,6 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
 
             }
         })
-
-
-
-
     }
 
     fun getDesAddress(result: String?)
