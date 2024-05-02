@@ -139,6 +139,8 @@ class PhoneVerificationActivity : AppCompatActivity() {
                                     Intent(context, MapsActivity::class.java)
                                 }
 
+                            // Clear all activities in the back stack
+                            intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
                             startActivity(intent)
                             finish()
                         }

@@ -7,49 +7,52 @@
     android:layout_height="match_parent"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     tools:context=".activity.customer.MapsActivity">
+
     <androidx.constraintlayout.widget.ConstraintLayout
+        android:id="@+id/constraintLayout"
         android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        >
+        android:layout_height="match_parent">
+
         <fragment
             android:id="@+id/map"
             android:name="com.google.android.gms.maps.SupportMapFragment"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
-            />
+            tools:layout_editor_absoluteX="122dp"
+            tools:layout_editor_absoluteY="16dp" />
 
         <com.google.android.material.textfield.TextInputLayout
             android:id="@+id/input_group"
-            map:layout_constraintTop_toTopOf="parent"
-            map:layout_constraintStart_toStartOf="parent"
-            map:layout_constraintEnd_toEndOf="parent"
-            android:layout_marginTop="40dp"
-            android:layout_marginLeft="20dp"
-            android:layout_marginRight="20dp"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            map:layout_goneMarginTop="40dp"
+            android:layout_marginStart="80dp"
+            android:layout_marginEnd="16dp"
+            android:textColor="#707070"
+            android:textColorHint="#707070"
+            app:boxStrokeWidth="0dp"
+            app:boxStrokeWidthFocused="0dp"
             app:endIconMode="clear_text"
             app:endIconTint="#989898"
             app:hintEnabled="false"
-            app:boxStrokeWidth="0dp"
-            app:boxStrokeWidthFocused="0dp"
-            android:textColor="#707070"
-            android:textColorHint="#707070"
-            >
+            map:layout_constraintBottom_toBottomOf="@+id/left_menu_button"
+            map:layout_constraintEnd_toEndOf="parent"
+            map:layout_constraintStart_toEndOf="@+id/left_menu_button"
+            map:layout_constraintTop_toTopOf="@+id/left_menu_button"
+            map:layout_goneMarginTop="40dp">
+
             <tkpm.com.crab.CustomeAutocompleteTextView
-                android:drawableStart="@drawable/ic_search"
-                android:drawablePadding="20dp"
                 android:id="@+id/autocomplete_addr"
                 android:layout_width="match_parent"
                 android:layout_height="60dp"
                 android:background="@drawable/bg_search_box"
+                android:drawableStart="@drawable/ic_search"
+                android:drawablePadding="20dp"
                 android:hint="Search your address"
                 android:inputType="text"
                 android:padding="16dp"
-                android:textCursorDrawable="@null"
                 android:textColor="#707070"
                 android:textColorHint="#707070"
+                android:textCursorDrawable="@null"
 
                 />
         </com.google.android.material.textfield.TextInputLayout>
@@ -59,27 +62,41 @@
             android:id="@+id/here_btn"
             android:layout_width="60dp"
             android:layout_height="60dp"
-            map:layout_constraintTop_toBottomOf="@id/input_group"
-            map:layout_constraintRight_toRightOf="@id/input_group"
-            android:scaleType="fitXY"
+            android:layout_marginTop="16dp"
             android:background="@null"
             android:contentDescription="Current location"
-            />
+            android:scaleType="fitXY"
+            map:layout_constraintRight_toRightOf="@id/input_group"
+            map:layout_constraintTop_toBottomOf="@id/input_group" />
+
+        <Button
+            android:id="@+id/left_menu_button"
+            style="@style/Widget.Material3.Button.Icon"
+            android:layout_width="48dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="16dp"
+            android:layout_marginTop="48dp"
+            android:padding="0dp"
+            app:icon="@drawable/ic_menu"
+            app:iconGravity="textStart"
+            app:iconPadding="0dp"
+            map:layout_constraintStart_toStartOf="parent"
+            map:layout_constraintTop_toTopOf="@+id/map"
+            android:contentDescription="Left menu" />
 
 
-<!--        <com.google.android.material.button.MaterialButton-->
-<!--            android:id="@+id/request_btn"-->
-<!--            android:layout_width="match_parent"-->
-<!--            android:layout_height="wrap_content"-->
-<!--            android:layout_margin="20dp"-->
-<!--            android:backgroundTint="@color/black"-->
-<!--            android:text="Request"-->
-<!--            map:layout_constraintBottom_toBottomOf="parent"-->
-<!--            map:layout_constraintEnd_toEndOf="parent"-->
-<!--            map:layout_constraintStart_toStartOf="parent" />-->
+        <!--        <com.google.android.material.button.MaterialButton-->
+        <!--            android:id="@+id/request_btn"-->
+        <!--            android:layout_width="match_parent"-->
+        <!--            android:layout_height="wrap_content"-->
+        <!--            android:layout_margin="20dp"-->
+        <!--            android:backgroundTint="@color/black"-->
+        <!--            android:text="Request"-->
+        <!--            map:layout_constraintBottom_toBottomOf="parent"-->
+        <!--            map:layout_constraintEnd_toEndOf="parent"-->
+        <!--            map:layout_constraintStart_toStartOf="parent" />-->
     </androidx.constraintlayout.widget.ConstraintLayout>
-    <include layout="@layout/bottom_choose_location"
-        />
-    <include layout="@layout/bottom_type_vehicle"
-        />
+    <include layout="@layout/bottom_choose_location" />
+    <include layout="@layout/bottom_type_vehicle" />
+    <include layout="@layout/left_user_menu" />
 </androidx.coordinatorlayout.widget.CoordinatorLayout>

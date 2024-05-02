@@ -3,6 +3,7 @@ package tkpm.com.crab.activity.customer
 
 import android.Manifest
 import android.content.Context
+import android.content.Intent
 import android.content.pm.PackageManager
 import android.graphics.Color
 import android.os.AsyncTask
@@ -49,12 +50,15 @@ import com.google.android.libraries.places.api.net.FetchPlaceResponse
 import com.google.android.libraries.places.api.net.FindAutocompletePredictionsRequest
 import com.google.android.libraries.places.api.net.PlacesClient
 import com.google.android.material.bottomsheet.BottomSheetBehavior
-import com.google.android.material.button.MaterialButton
+import com.google.android.material.sidesheet.SideSheetBehavior
 import com.google.firebase.auth.FirebaseAuth
 import org.json.JSONException
 import org.json.JSONObject
 import tkpm.com.crab.BuildConfig
+import tkpm.com.crab.MainActivity
 import tkpm.com.crab.R
+import tkpm.com.crab.activity.ChangeInfoActivity
+import tkpm.com.crab.activity.authentication.phone.PhoneLoginActivity
 import tkpm.com.crab.adapter.MapPredictionAdapter
 import tkpm.com.crab.adapter.TypeVehicleAdapter
 import tkpm.com.crab.api.APICallback
@@ -82,6 +86,8 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
     private lateinit var autocomplete_addr: AutoCompleteTextView
     private lateinit var bottomChooseVehicle: BottomSheetBehavior<ConstraintLayout>
     private lateinit var bottomChooseLocation: BottomSheetBehavior<ConstraintLayout>
+    private lateinit var leftUserMenu: SideSheetBehavior<ConstraintLayout>
+    private lateinit var userMenuButton: Button
 
     private val handler = Handler(Looper.getMainLooper())
 
@@ -104,6 +110,8 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContentView(R.layout.activity_maps)
+
+        userMenuButton = findViewById(R.id.left_menu_button)
 
         checkLocationPermissions()
 
@@ -129,10 +137,16 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
         autocomplete_addr = findViewById(R.id.autocomplete_addr)
         bottomChooseVehicle = BottomSheetBehavior.from(findViewById(R.id.bottom_type_vehicle))
         bottomChooseLocation = BottomSheetBehavior.from(findViewById(R.id.bottom_choose_location))
+        leftUserMenu = SideSheetBehavior.from(findViewById(R.id.left_menu))
+
         bottomChooseVehicle.isHideable = true
         bottomChooseLocation.isHideable = true
+        leftUserMenu.isDraggable = true
+
         bottomChooseVehicle.state = BottomSheetBehavior.STATE_HIDDEN
         bottomChooseLocation.state = BottomSheetBehavior.STATE_HIDDEN
+        leftUserMenu.state = SideSheetBehavior.STATE_HIDDEN
+
         bottomChooseVehicle.addBottomSheetCallback(object : BottomSheetBehavior.BottomSheetCallback() {
             override fun onStateChanged(bottomSheet: View, newState: Int) {
                 if(newState == BottomSheetBehavior.STATE_HIDDEN)
@@ -154,6 +168,28 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
             setCurrentLocation()
         }
 
+        // Set button to show the left user menu
+        userMenuButton.setOnClickListener {
+            leftUserMenu.state = SideSheetBehavior.STATE_EXPANDED
+        }
+
+        // Set function to show the user information button
+        findViewById<Button>(R.id.left_menu_user_info).setOnClickListener{
+            val intent = Intent(this, ChangeInfoActivity::class.java)
+            startActivity(intent)
+        }
+
+        // Set function for the logout button
+        findViewById<Button>(R.id.left_menu_logout).setOnClickListener {
+            FirebaseAuth.getInstance().signOut()
+            CredentialService().erase()
+
+            // Clear all activities and start the login activity
+            finishAffinity()
+            val intent = Intent(this, MainActivity::class.java)
+            startActivity(intent)
+            finish()
+        }
     }
 
     private fun createRequest() {
