@@ -95,8 +95,8 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
     private var distance = 0L
     private var duration = 0L
 
-    private var destinationAdress = ""
-    private var currentAdress = ""
+    private var destinationAddress = ""
+    private var currentAddress = ""
 
     private var vehicleType: VehicleTypePrice? = null
 
@@ -173,17 +173,17 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
 //        Log.i(TAG, "Destination location: ${destinationLocationAddress?.getAddressLine(0)?: ""}")
         val user = FirebaseAuth.getInstance().currentUser
         val phone = user?.phoneNumber ?: ""
-        val name = CredentialService().getAll().name
         val data = BookingRequest(
             currentMarker?.position?.latitude ?: 0.0,
             currentMarker?.position?.longitude ?: 0.0,
             destinationMarker?.position?.latitude ?: 0.0,
             destinationMarker?.position?.longitude ?: 0.0,
-            currentAdress ?: "",
-            destinationAdress ?: "",
-            name,
+            currentAddress ?: "",
+            destinationAddress ?: "",
+            CredentialService().getAll().name,
             phone,
-            name, // orderedBy
+            CredentialService().get(),
+            vehicleType?.typeVehicle ?: "",
             vehicleType?.typeName ?: "",
             vehicleType?.fee ?: 0,
         )
@@ -300,7 +300,7 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
 
         timeTv.text = "(${duration / 60})"
         distanceTv.text = "${distance / 1000} km"
-        adressTv.text = destinationAdress
+        adressTv.text = destinationAddress
         bottomChooseLocation.state = BottomSheetBehavior.STATE_EXPANDED
         chooseBtn.setOnClickListener {
             bottomChooseVehicle.state = BottomSheetBehavior.STATE_EXPANDED
@@ -347,9 +347,9 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
             val routes = routeArray.getJSONObject(0)
             val legs = routes.getJSONArray("legs")
             val origin = legs.getJSONObject(0)
-            currentAdress = origin.getString("start_address")
+            currentAddress = origin.getString("start_address")
             val legsObject = legs.getJSONObject(legs.length() - 1)
-            destinationAdress = legsObject.getString("end_address")
+            destinationAddress = legsObject.getString("end_address")
         } catch (e: JSONException) {
             e.printStackTrace()
         }

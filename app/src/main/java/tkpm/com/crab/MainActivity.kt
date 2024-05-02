@@ -55,31 +55,13 @@ class MainActivity : AppCompatActivity() {
         }
 
         Handler(Looper.getMainLooper()).postDelayed({
-//            if (checkAuthen()) {
-//                val intent = Intent(this, PhoneLoginActivity::class.java)
-//                startActivity(intent)
-//                Log.i("MainActivity", "User is already logged in")
-//                finish()
-//            } else {
-//                val intent = Intent(this, LoginActivity::class.java)
-//                val pairs = arrayOf<Pair<View, String>>(
-//                    Pair(logo, "logo_image")
-//                )
-//
-//                val options =
-//                    ActivityOptions.makeSceneTransitionAnimation(this@MainActivity, *pairs)
-//                startActivity(intent, options.toBundle())
-//                finish()
-//            }
-
             // Check if user login or not
             // If user not login, redirect to login page
             if (CredentialService().get() == "") {
                 val intent = Intent(this@MainActivity, PhoneLoginActivity::class.java)
                 startActivity(intent)
                 finish()
-            } else
-            {
+            } else {
                 // If user login, redirect to update info page if user is new user
                 val intent =
                     if (CredentialService().isNewUser())

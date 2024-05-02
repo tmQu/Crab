@@ -63,6 +63,7 @@
             map:layout_constraintRight_toRightOf="@id/input_group"
             android:scaleType="fitXY"
             android:background="@null"
+            android:contentDescription="Current location"
             />
 
 
