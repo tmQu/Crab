@@ -1,5 +1,6 @@
 package tkpm.com.crab.activity.authentication.phone
 
+import android.content.Intent
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
@@ -19,15 +20,21 @@ import com.google.firebase.auth.PhoneAuthCredential
 import com.google.firebase.auth.PhoneAuthOptions
 import com.google.firebase.auth.PhoneAuthProvider
 import tkpm.com.crab.R
+import tkpm.com.crab.activity.customer.MapsActivity
+import tkpm.com.crab.activity.UpdateInfoActivity
+import tkpm.com.crab.activity.driver.DriverMapActivity
+import tkpm.com.crab.api.APICallback
+import tkpm.com.crab.api.APIService
+import tkpm.com.crab.credential_service.CredentialService
+import tkpm.com.crab.dialog.LoadingDialog
+import tkpm.com.crab.objects.AccountRequest
+import tkpm.com.crab.objects.AccountResponse
 import java.util.concurrent.TimeUnit
 
 
 class PhoneVerificationActivity : AppCompatActivity() {
-
-
     private val TAG = "PhoneVerificationActivity"
     private lateinit var auth: FirebaseAuth
-
 
     private var storedVerificationId: String = ""
     private var phoneNumber: String = ""
@@ -38,6 +45,8 @@ class PhoneVerificationActivity : AppCompatActivity() {
 
     private var tryCount = 3
     private var timeOut = 60
+
+    private lateinit var loadingDialog: LoadingDialog
 
     private val handler = Handler(Looper.getMainLooper())
     private val runnable = object: Runnable {
@@ -74,6 +83,7 @@ class PhoneVerificationActivity : AppCompatActivity() {
         if (storedVerificationId == "") {
 
         }
+        loadingDialog = LoadingDialog(this)
         auth = FirebaseAuth.getInstance()
         handler.postDelayed(runnable, 1000)
 
@@ -91,7 +101,8 @@ class PhoneVerificationActivity : AppCompatActivity() {
         {
             return
         }
-
+        loadingDialog = LoadingDialog(this)
+        loadingDialog.startLoadingDialog()
         val credential = PhoneAuthProvider.getCredential(storedVerificationId, otp)
         signInWithPhoneAuthCredential(credential)
 
@@ -103,8 +114,47 @@ class PhoneVerificationActivity : AppCompatActivity() {
                 if (task.isSuccessful) {
                     // Sign in success, update UI with the signed-in user's information
                     Log.d(TAG, "signInWithCredential:success")
-                    Toast.makeText(this, "Login Success", Toast.LENGTH_SHORT).show()
                     val user = task.result?.user
+
+                    val accountRequest = AccountRequest(
+                        phone = user?.phoneNumber ?: "",
+                        uid = user?.uid ?: ""
+                    )
+
+                    // Sign in/Sign up with firebase API
+                    val context = this
+                    APIService().doPost<AccountResponse>("firebase/auth", accountRequest, object :
+                        APICallback<Any> {
+                        override fun onSuccess(data: Any) {
+                            data as AccountResponse
+
+                            // Set the token
+                            CredentialService().set(data.token)
+
+                            // Move the MapsActivity when the user is logged in
+                            // If the user is a new user, move to UpdateInfoActivity
+                            val intent =
+                                if (CredentialService().isNewUser()) {
+                                    Intent(context, UpdateInfoActivity::class.java)
+                                } else {
+                                    if(CredentialService().getAll().role == "driver")
+                                        Intent(context, DriverMapActivity::class.java)
+                                    else
+                                        // Move to MapsActivity (Customer)
+                                        Intent(context, MapsActivity::class.java)
+                                }
+
+                            // Clear all activities in the back stack
+                            intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+                            startActivity(intent)
+                            finish()
+                        }
+
+                        override fun onError(error: Throwable) {
+                            Log.e(TAG, "Error: ${error.message}")
+                            loadingDialog.dismissDialog()
+                        }
+                    })
                 } else {
                     // Sign in failed, display a message and update the UI
                     Log.w(TAG, "signInWithCredential:failure", task.exception)
@@ -117,12 +167,15 @@ class PhoneVerificationActivity : AppCompatActivity() {
                             errorMsg.text = "Mã mới đã được gửi đến số điện thoại của bạn"
                             onClickSendOTPAgain()
                         }
-                        else
+                        else{
                             errorMsg.setText("Mã OTP không hợp lệ, bạn còn $tryCount lần thử")
+                        }
+                        loadingDialog.dismissDialog()
                     }
                     else {
                         // Update UI
                         Toast.makeText(this, "Đăng nhập thất bại", Toast.LENGTH_SHORT).show()
+                        loadingDialog.dismissDialog()
                         finish()
                     }
 

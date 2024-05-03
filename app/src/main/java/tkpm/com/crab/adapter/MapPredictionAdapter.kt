@@ -96,15 +96,14 @@ class MapPredictionAdapter(
             }
 
             override fun convertResultToString(resultValue: Any?): CharSequence? {
-                // Override this method to display a readable result in the AutocompleteTextView
-                // when clicked.
-//                return if (resultValue is AutocompletePrediction) {
-////                    resultValue.getFullText(null)
+//                 Override this method to display a readable result in the AutocompleteTextView
+//                 when clicked.
+                return if (resultValue is AutocompletePrediction) {
+                    resultValue.getFullText(null)
 //                    return null
-//                } else {
-//                    //super.convertResultToString(resultValue)
-//                    return null
-//                }
+                } else {
+                    super.convertResultToString(resultValue)
+                }
                 return null
             }
         }

@@ -87,5 +87,13 @@ dependencies {
     // Coroutines
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.8.0")
 
+    // JWT Decoder
+    implementation("com.auth0.android:jwtdecode:2.0.2")
+
+    // Round image view
+    implementation("de.hdodenhof:circleimageview:3.1.0")
+
+    // Picasso for image loading
+    implementation("com.squareup.picasso:picasso:2.8")
 }
 

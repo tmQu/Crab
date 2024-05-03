@@ -111,10 +111,10 @@ class APIService {
             ) {
                 if (response.isSuccessful && response.body()!!.success) {
                     val data = response.body()?.data
+
                     val gson = Gson()
                     val type = object : TypeToken<T>() {}.type
                     val result = gson.fromJson(data, type) as Any
-
                     // Custom callback to process data
                     callback.onSuccess(result)
                 } else {
