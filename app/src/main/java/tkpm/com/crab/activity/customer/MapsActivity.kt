@@ -2,6 +2,7 @@ package tkpm.com.crab.activity.customer
 
 
 import android.Manifest
+import android.app.Activity
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
@@ -19,9 +20,13 @@ import android.view.inputmethod.InputMethodManager
 import android.widget.AutoCompleteTextView
 import android.widget.Button
 import android.widget.ImageButton
+import android.widget.ImageView
+import android.widget.LinearLayout
 import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.enableEdgeToEdge
+import androidx.activity.result.ActivityResultLauncher
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.constraintlayout.widget.ConstraintLayout
 import androidx.core.app.ActivityCompat
@@ -67,6 +72,8 @@ import tkpm.com.crab.api.APICallback
 import tkpm.com.crab.api.APIService
 import tkpm.com.crab.credential_service.CredentialService
 import tkpm.com.crab.objects.BookingRequest
+import tkpm.com.crab.objects.PaymentMethodRequest
+import tkpm.com.crab.objects.PaymentMethodSerializable
 import tkpm.com.crab.objects.VehicleTypePrice
 import tkpm.com.crab.objects.VehilceTypePriceResponse
 import java.net.URL
@@ -93,9 +100,6 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
 
     private val handler = Handler(Looper.getMainLooper())
 
-
-    private lateinit var currentPosition: LatLng
-
     // Marker
     private var destinationMarker: Marker? = null
     private var currentMarker: Marker? = null
@@ -107,6 +111,8 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
     private var currentAddress = ""
 
     private var vehicleType: VehicleTypePrice? = null
+
+    private lateinit var resultLauncher: ActivityResultLauncher<Intent>
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -181,6 +187,12 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
             startActivity(intent)
         }
 
+        // Set function to show payment method button
+        findViewById<Button>(R.id.left_menu_payment_method).setOnClickListener {
+            val intent = Intent(this, PaymentMethodActivity::class.java)
+            startActivity(intent)
+        }
+
         // Set function for the logout button
         findViewById<Button>(R.id.left_menu_logout).setOnClickListener {
             FirebaseAuth.getInstance().signOut()
@@ -192,23 +204,34 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
             startActivity(intent)
             finish()
         }
+
+        // Init result launcher
+        resultLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
+            if (result.resultCode == Activity.RESULT_OK) {
+                // Handle the returned result here
+                val data: Intent? = result.data
+                val paymentMethod = data?.getSerializableExtra("paymentMethod") as PaymentMethodSerializable
+
+                // Change text and icon of payment method
+                if (paymentMethod.number == "") {
+                    findViewById<TextView>(R.id.bottom_type_vehicle_payment_name).text = "Tiền mặt"
+                    findViewById<ImageView>(R.id.bottom_type_vehicle_payment_icon).setImageResource(R.drawable.ic_cash)
+                } else
+                {
+                    findViewById<TextView>(R.id.bottom_type_vehicle_payment_name).text = "Visa*" + paymentMethod?.number?.takeLast(4)
+                    findViewById<ImageView>(R.id.bottom_type_vehicle_payment_icon).setImageResource(R.drawable.ic_visa)
+                }
+            }
+        }
+
+        // Set function to choose payment method
+        findViewById<LinearLayout>(R.id.bottom_type_vehicle_payment).setOnClickListener {
+            val intent = Intent(this, ChoosePaymentActivity::class.java)
+            resultLauncher.launch(intent)
+        }
     }
 
     private fun createRequest() {
-//        val currentLocationAddress: Address? = Geocoder(this).getFromLocation(
-//            currentMarker?.position?.latitude ?: 0.0,
-//            currentMarker?.position?.longitude ?: 0.0,
-//            1
-//        )?.firstOrNull()
-//
-//        val destinationLocationAddress: Address? = Geocoder(this).getFromLocation(
-//            destinationMarker?.position?.latitude ?: 0.0,
-//            destinationMarker?.position?.longitude ?: 0.0,
-//            1
-//        )?.firstOrNull()
-//
-//        Log.i(TAG, "Current location: ${currentLocationAddress?.getAddressLine(0) ?: ""}")
-//        Log.i(TAG, "Destination location: ${destinationLocationAddress?.getAddressLine(0)?: ""}")
         val user = FirebaseAuth.getInstance().currentUser
         val phone = user?.phoneNumber ?: ""
         val data = BookingRequest(
@@ -577,8 +600,7 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
                 if (it.isSuccessful) {
                     val location = it.result
                     if (location != null) {
-                        currentPosition = LatLng(location.latitude, location.longitude)
-                        setCurrentLocationMarker(currentPosition)
+                        setCurrentLocationMarker(LatLng(location.latitude, location.longitude))
                         moveCamera(LatLng(location.latitude, location.longitude), 15f)
                     }
                 }

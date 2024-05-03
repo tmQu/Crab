@@ -122,7 +122,7 @@ class PhoneVerificationActivity : AppCompatActivity() {
                     )
 
                     // Sign in/Sign up with firebase API
-                    val context = this
+                    val context = this@PhoneVerificationActivity
                     APIService().doPost<AccountResponse>("firebase/auth", accountRequest, object :
                         APICallback<Any> {
                         override fun onSuccess(data: Any) {
@@ -137,6 +137,7 @@ class PhoneVerificationActivity : AppCompatActivity() {
                                 if (CredentialService().isNewUser()) {
                                     Intent(context, UpdateInfoActivity::class.java)
                                 } else {
+                                    // Move to DriverMapActivity (Driver)
                                     if(CredentialService().getAll().role == "driver")
                                         Intent(context, DriverMapActivity::class.java)
                                     else
@@ -152,6 +153,7 @@ class PhoneVerificationActivity : AppCompatActivity() {
 
                         override fun onError(error: Throwable) {
                             Log.e(TAG, "Error: ${error.message}")
+                            Log.e("Token", CredentialService().get())
                             loadingDialog.dismissDialog()
                         }
                     })

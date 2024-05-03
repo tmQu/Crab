@@ -18,6 +18,7 @@ import okhttp3.MultipartBody
 import okhttp3.RequestBody
 import tkpm.com.crab.R
 import tkpm.com.crab.activity.customer.MapsActivity
+import tkpm.com.crab.activity.driver.DriverMapActivity
 import tkpm.com.crab.api.APICallback
 import tkpm.com.crab.api.APIService
 import tkpm.com.crab.credential_service.CredentialService
@@ -144,8 +145,13 @@ class UpdateInfoActivity : AppCompatActivity() {
                             Toast.makeText(this@UpdateInfoActivity, "Cập nhật thông tin thành công", Toast.LENGTH_SHORT).show()
                             loadingDialog.dismissDialog()
 
-                            // Move to the MapsActivity
-                            val intent = Intent(this@UpdateInfoActivity, MapsActivity::class.java)
+                            // Move to the MapsActivity by role
+                            val intent =
+                                if (CredentialService().getAll().role == "customer")
+                                    Intent(this@UpdateInfoActivity, MapsActivity::class.java)
+                                else
+                                    Intent(this@UpdateInfoActivity, DriverMapActivity::class.java)
+
                             // Add flags to clear the back stack
                             intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
                             startActivity(intent)
@@ -184,8 +190,15 @@ class UpdateInfoActivity : AppCompatActivity() {
                     Toast.makeText(this@UpdateInfoActivity, "Cập nhật thông tin thành công", Toast.LENGTH_SHORT).show()
                     loadingDialog.dismissDialog()
 
-                    // Move to the MapsActivity
-                    val intent = Intent(this@UpdateInfoActivity, MapsActivity::class.java)
+                    // Move to the MapsActivity by role
+                    val intent =
+                        if (CredentialService().getAll().role == "customer")
+                            Intent(this@UpdateInfoActivity, MapsActivity::class.java)
+                        else
+                            Intent(this@UpdateInfoActivity, DriverMapActivity::class.java)
+
+                    // Add flags to clear the back stack
+                    intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
                     startActivity(intent)
                     finish()
                 }

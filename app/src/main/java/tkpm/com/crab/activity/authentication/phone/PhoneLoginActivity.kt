@@ -1,6 +1,8 @@
 package tkpm.com.crab.activity.authentication.phone
 
+import android.Manifest
 import android.content.Intent
+import android.content.pm.PackageManager
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
 import android.util.Log
@@ -9,6 +11,7 @@ import android.view.inputmethod.InputMethodManager
 import android.widget.Button
 import android.widget.TextView
 import android.widget.Toast
+import androidx.core.content.ContextCompat
 import com.google.android.material.button.MaterialButton
 import com.google.android.material.textfield.TextInputLayout
 import com.google.firebase.Firebase
@@ -26,7 +29,7 @@ import tkpm.com.crab.dialog.LoadingDialog
 import java.util.concurrent.TimeUnit
 
 class PhoneLoginActivity : AppCompatActivity() {
-
+    val REQUEST_CODE_PERMISSION = 83
     private val TAG = "PhoneLoginActivity"
     private lateinit var auth: FirebaseAuth
 
@@ -43,7 +46,6 @@ class PhoneLoginActivity : AppCompatActivity() {
         setContentView(R.layout.activity_phone_login)
 
         binding()
-
 
         countryCodeEdt.editText?.setText("+84")
         countryCodeEdt.focusable =  NOT_FOCUSABLE
@@ -67,6 +69,7 @@ class PhoneLoginActivity : AppCompatActivity() {
         val imm = getSystemService(INPUT_METHOD_SERVICE) as InputMethodManager
         imm.showSoftInput(phoneEdt.editText, InputMethodManager.SHOW_IMPLICIT)
 
+        checkLocationPermissions()
     }
 
     private fun binding()
@@ -189,6 +192,38 @@ class PhoneLoginActivity : AppCompatActivity() {
             }
     }
 
+    private fun checkLocationPermissions() {
+        if (ContextCompat.checkSelfPermission(
+                this, Manifest.permission.ACCESS_FINE_LOCATION
+            ) == PackageManager.PERMISSION_GRANTED && ContextCompat.checkSelfPermission(
+                this, Manifest.permission.ACCESS_COARSE_LOCATION
+            ) == PackageManager.PERMISSION_GRANTED
+        ) {
+            Log.d(TAG, "Permission granted")
+        } else {
+            requestPermissions(
+                arrayOf(
+                    Manifest.permission.ACCESS_FINE_LOCATION,
+                    Manifest.permission.ACCESS_COARSE_LOCATION
+                ), REQUEST_CODE_PERMISSION
+            )
+        }
+    }
 
-
+    override fun onRequestPermissionsResult(
+        requestCode: Int, permissions: Array<out String>, grantResults: IntArray
+    ) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
+        if (requestCode == REQUEST_CODE_PERMISSION) {
+            if (grantResults.isNotEmpty()) {
+                for (result in grantResults) {
+                    if (result != PackageManager.PERMISSION_GRANTED) {
+                        Log.d(TAG, "Permission denied")
+                        return
+                    }
+                }
+                Log.d(TAG, "Permission granted")
+            }
+        }
+    }
 }

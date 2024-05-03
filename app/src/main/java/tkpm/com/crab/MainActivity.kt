@@ -20,13 +20,8 @@ import tkpm.com.crab.activity.authentication.phone.PhoneLoginActivity
 import tkpm.com.crab.credential_service.CredentialService
 
 class MainActivity : AppCompatActivity() {
-
-
     private lateinit var logo: ImageView
     private lateinit var bottomImage: ImageView
-    private fun checkAuthen(): Boolean {
-        return true
-    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         enableEdgeToEdge()
