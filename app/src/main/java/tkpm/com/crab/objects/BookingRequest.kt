@@ -14,3 +14,4 @@ data class BookingRequest (
     val service: String,
     val fee: Int
 )
+

@@ -59,6 +59,8 @@ import tkpm.com.crab.MainActivity
 import tkpm.com.crab.R
 import tkpm.com.crab.activity.ChangeInfoActivity
 import tkpm.com.crab.activity.authentication.phone.PhoneLoginActivity
+import tkpm.com.crab.activity.driver.Booking
+import tkpm.com.crab.activity.driver.DriverMapActivity
 import tkpm.com.crab.adapter.MapPredictionAdapter
 import tkpm.com.crab.adapter.TypeVehicleAdapter
 import tkpm.com.crab.api.APICallback
@@ -224,7 +226,7 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
             vehicleType?.fee ?: 0,
         )
 
-        APIService().doPost<Any>("bookings", data, object : APICallback<Any> {
+        APIService().doPost<BookingRequest>("bookings", data, object : APICallback<Any> {
             override fun onSuccess(result: Any) {
                 Toast.makeText(this@MapsActivity, "Success", Toast.LENGTH_SHORT).show()
             }
@@ -587,7 +589,6 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
     }
 
     override fun onMapReady(googleMap: GoogleMap) {
-        Toast.makeText(this, "Map is ready", Toast.LENGTH_SHORT).show()
         mMap = googleMap
 
         if (ActivityCompat.checkSelfPermission(

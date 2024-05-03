@@ -22,6 +22,7 @@ import com.google.firebase.auth.PhoneAuthProvider
 import tkpm.com.crab.R
 import tkpm.com.crab.activity.customer.MapsActivity
 import tkpm.com.crab.activity.UpdateInfoActivity
+import tkpm.com.crab.activity.driver.DriverMapActivity
 import tkpm.com.crab.api.APICallback
 import tkpm.com.crab.api.APIService
 import tkpm.com.crab.credential_service.CredentialService
@@ -136,7 +137,11 @@ class PhoneVerificationActivity : AppCompatActivity() {
                                 if (CredentialService().isNewUser()) {
                                     Intent(context, UpdateInfoActivity::class.java)
                                 } else {
-                                    Intent(context, MapsActivity::class.java)
+                                    if(CredentialService().getAll().role == "driver")
+                                        Intent(context, DriverMapActivity::class.java)
+                                    else
+                                        // Move to MapsActivity (Customer)
+                                        Intent(context, MapsActivity::class.java)
                                 }
 
                             // Clear all activities in the back stack
@@ -162,9 +167,10 @@ class PhoneVerificationActivity : AppCompatActivity() {
                             errorMsg.text = "Mã mới đã được gửi đến số điện thoại của bạn"
                             onClickSendOTPAgain()
                         }
-                        else
+                        else{
                             errorMsg.setText("Mã OTP không hợp lệ, bạn còn $tryCount lần thử")
-                            loadingDialog.dismissDialog()
+                        }
+                        loadingDialog.dismissDialog()
                     }
                     else {
                         // Update UI
