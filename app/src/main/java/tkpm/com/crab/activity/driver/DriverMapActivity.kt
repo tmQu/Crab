@@ -17,11 +17,11 @@ import android.widget.Button
 import android.widget.LinearLayout
 import android.widget.TextView
 import android.widget.Toast
+import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
 import androidx.constraintlayout.widget.ConstraintLayout
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
-import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.google.android.gms.location.FusedLocationProviderClient
 import com.google.android.gms.location.LocationCallback
@@ -41,7 +41,8 @@ import com.google.android.gms.maps.model.Polyline
 import com.google.android.gms.maps.model.PolylineOptions
 import com.google.android.libraries.places.api.net.PlacesClient
 import com.google.android.material.bottomsheet.BottomSheetBehavior
-import com.google.android.material.card.MaterialCardView
+import com.google.android.material.sidesheet.SideSheetBehavior
+import com.google.firebase.auth.FirebaseAuth
 import com.google.gson.Gson
 import com.google.gson.annotations.SerializedName
 import okhttp3.OkHttpClient
@@ -52,11 +53,15 @@ import okio.ByteString
 import org.json.JSONException
 import org.json.JSONObject
 import tkpm.com.crab.BuildConfig
+import tkpm.com.crab.MainActivity
 import tkpm.com.crab.R
+import tkpm.com.crab.activity.ChangeInfoActivity
 import tkpm.com.crab.api.APICallback
 import tkpm.com.crab.api.APIService
 import tkpm.com.crab.credential_service.CredentialService
 import tkpm.com.crab.databinding.ActivityDriverMapsBinding
+import tkpm.com.crab.objects.VehicleValidation
+import tkpm.com.crab.utils.PriceDisplay
 import java.net.URL
 
 data class MongoLocation(
@@ -133,7 +138,7 @@ class DriverMapActivity : AppCompatActivity(), OnMapReadyCallback {
 
         btnStep.visibility = View.GONE
 
-        priceView.text = booking.info.fee.toString()
+        priceView.text = PriceDisplay.formatVND(booking.info.fee.toLong())
         customerName.text = booking.info.name
         serviceName.text = booking.service
         address.text = booking.info.destination.address
@@ -183,6 +188,7 @@ class DriverMapActivity : AppCompatActivity(), OnMapReadyCallback {
             startBtnGroup.visibility = View.VISIBLE
             btnStep.visibility = View.GONE
             clearLines()
+            clearMarkers()
         }
         btnStep.text = "Đã đón"
 
@@ -277,6 +283,7 @@ class DriverMapActivity : AppCompatActivity(), OnMapReadyCallback {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        enableEdgeToEdge()
         setContentView(R.layout.activity_driver_maps)
 
         // Obtain the SupportMapFragment and get notified when the map is ready to be used.
@@ -299,18 +306,67 @@ class DriverMapActivity : AppCompatActivity(), OnMapReadyCallback {
         handleDriverStatus()
 
         findViewById<Button>(R.id.connection_btn).setOnClickListener {
-            driverStatus = ONLINE
-            webSocket.connectWebSocket(BuildConfig.BASE_URL_WS)
-            webSocket.driverOnline()
-            webSocket.updateLocation(currentLocation.latitude, currentLocation.longitude)
-            handleDriverStatus()
+            APIService().doGet<VehicleValidation>("accounts/${CredentialService().get()}/vehicles/validation", object : APICallback<Any> {
+                override fun onSuccess(data: Any) {
+                    data as VehicleValidation
+                    val isVehicleAvailable = data.data
+
+                    if (!isVehicleAvailable) {
+                        Toast.makeText(this@DriverMapActivity, "Please update vehicle information", Toast.LENGTH_SHORT).show()
+                        return
+                    }
+
+                    // Update driver status
+                    driverStatus = ONLINE
+                    webSocket.connectWebSocket(BuildConfig.BASE_URL_WS)
+                    webSocket.driverOnline()
+                    webSocket.updateLocation(currentLocation.latitude, currentLocation.longitude)
+                    handleDriverStatus()
+                }
+
+                override fun onError(error: Throwable) {
+                    Log.i("DriverMapActivity", "Error fetching account")
+                    Toast.makeText(this@DriverMapActivity, "Error fetching account", Toast.LENGTH_SHORT).show()
+                }
+            })
         }
 
         findViewById<Button>(R.id.disconnect_btn).setOnClickListener {
             driverStatus = OFFLINE
             webSocket.driverOffline()
             webSocket.closeWebSocket()
+            clearLines()
+            clearMarkers()
             handleDriverStatus()
+        }
+
+        // Show left menu
+        findViewById<Button>(R.id.left_menu_button).setOnClickListener{
+            SideSheetBehavior.from(findViewById(R.id.left_driver_menu)).state = SideSheetBehavior.STATE_EXPANDED
+        }
+
+        // Set function to show the user information button
+        findViewById<Button>(R.id.left_menu_user_info).setOnClickListener{
+            val intent = Intent(this, ChangeInfoActivity::class.java)
+            startActivity(intent)
+        }
+
+        // Set function to show the vehicle information button
+        findViewById<Button>(R.id.left_menu_vehicle_info).setOnClickListener{
+            val intent = Intent(this, ChangeVehicleInfo::class.java)
+            startActivity(intent)
+        }
+
+        // Set function for the logout button
+        findViewById<Button>(R.id.left_menu_logout).setOnClickListener {
+            FirebaseAuth.getInstance().signOut()
+            CredentialService().erase()
+
+            // Clear all activities and start the login activity
+            finishAffinity()
+            val intent = Intent(this, MainActivity::class.java)
+            startActivity(intent)
+            finish()
         }
     }
 
@@ -344,9 +400,6 @@ class DriverMapActivity : AppCompatActivity(), OnMapReadyCallback {
         mMap.uiSettings.isMyLocationButtonEnabled = true
         mMap.uiSettings.isZoomControlsEnabled = true
         mMap.uiSettings.isCompassEnabled = true
-
-
-
 
         checkLocationPermission()
         locationProviderClient = LocationServices.getFusedLocationProviderClient(this)

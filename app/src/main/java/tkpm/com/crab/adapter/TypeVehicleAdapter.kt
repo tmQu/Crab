@@ -9,7 +9,7 @@ import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
 import tkpm.com.crab.R
 import tkpm.com.crab.objects.VehicleTypePrice
-import tkpm.com.crab.utils.Utils
+import tkpm.com.crab.utils.PriceDisplay
 import kotlin.properties.Delegates
 
 class TypeVehicleAdapter(val listVehicle: List<VehicleTypePrice>, val onItemClickListener:  (Int) -> Unit): RecyclerView.Adapter<TypeVehicleAdapter.ViewHolder>(){
@@ -51,7 +51,7 @@ class TypeVehicleAdapter(val listVehicle: List<VehicleTypePrice>, val onItemClic
 
         val vehicle = listVehicle[position]
 
-        priceVehicle.text = Utils.formatVND(vehicle.fee)
+        priceVehicle.text = PriceDisplay.formatVND(vehicle.fee.toLong())
         if (vehicle.typeVehicle.contains("Bike", true))
         {
             imageVehicle.setImageResource(R.drawable.ic_bike)

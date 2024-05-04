@@ -8,14 +8,9 @@ import android.provider.MediaStore
 import android.util.Log
 import android.view.View.INVISIBLE
 import android.widget.ImageView
-import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
-import androidx.core.view.ViewCompat
-import androidx.core.view.WindowCompat
-import androidx.core.view.WindowInsetsCompat
-import androidx.core.view.WindowInsetsControllerCompat
 import com.google.android.material.button.MaterialButton
 import com.google.android.material.textfield.MaterialAutoCompleteTextView
 import com.squareup.picasso.Picasso
@@ -24,7 +19,6 @@ import okhttp3.MultipartBody
 import okhttp3.RequestBody
 import tkpm.com.crab.BuildConfig
 import tkpm.com.crab.R
-import tkpm.com.crab.activity.customer.MapsActivity
 import tkpm.com.crab.api.APICallback
 import tkpm.com.crab.api.APIService
 import tkpm.com.crab.credential_service.CredentialService

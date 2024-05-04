@@ -63,16 +63,12 @@ import tkpm.com.crab.BuildConfig
 import tkpm.com.crab.MainActivity
 import tkpm.com.crab.R
 import tkpm.com.crab.activity.ChangeInfoActivity
-import tkpm.com.crab.activity.authentication.phone.PhoneLoginActivity
-import tkpm.com.crab.activity.driver.Booking
-import tkpm.com.crab.activity.driver.DriverMapActivity
 import tkpm.com.crab.adapter.MapPredictionAdapter
 import tkpm.com.crab.adapter.TypeVehicleAdapter
 import tkpm.com.crab.api.APICallback
 import tkpm.com.crab.api.APIService
 import tkpm.com.crab.credential_service.CredentialService
 import tkpm.com.crab.objects.BookingRequest
-import tkpm.com.crab.objects.PaymentMethodRequest
 import tkpm.com.crab.objects.PaymentMethodSerializable
 import tkpm.com.crab.objects.VehicleTypePrice
 import tkpm.com.crab.objects.VehilceTypePriceResponse
