@@ -95,6 +95,7 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
     private lateinit var userMenuButton: Button
 
     private val handler = Handler(Looper.getMainLooper())
+    private var visaId = ""
 
     // Marker
     private var destinationMarker: Marker? = null
@@ -212,10 +213,12 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
                 if (paymentMethod.number == "") {
                     findViewById<TextView>(R.id.bottom_type_vehicle_payment_name).text = "Tiền mặt"
                     findViewById<ImageView>(R.id.bottom_type_vehicle_payment_icon).setImageResource(R.drawable.ic_cash)
+                    visaId = ""
                 } else
                 {
                     findViewById<TextView>(R.id.bottom_type_vehicle_payment_name).text = "Visa*" + paymentMethod?.number?.takeLast(4)
                     findViewById<ImageView>(R.id.bottom_type_vehicle_payment_icon).setImageResource(R.drawable.ic_visa)
+                    visaId = paymentMethod.id
                 }
             }
         }
@@ -243,6 +246,7 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
             vehicleType?.typeVehicle ?: "",
             vehicleType?.typeName ?: "",
             vehicleType?.fee ?: 0,
+            visaId
         )
 
         APIService().doPost<BookingRequest>("bookings", data, object : APICallback<Any> {

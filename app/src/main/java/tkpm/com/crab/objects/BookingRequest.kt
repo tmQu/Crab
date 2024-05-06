@@ -12,6 +12,7 @@ data class BookingRequest (
     val ordered_by: String,
     val vehicle: String,
     val service: String,
-    val fee: Int
+    val fee: Int,
+    val visa: String
 )
 
