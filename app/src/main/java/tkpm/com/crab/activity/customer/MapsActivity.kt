@@ -63,6 +63,7 @@ import tkpm.com.crab.BuildConfig
 import tkpm.com.crab.MainActivity
 import tkpm.com.crab.R
 import tkpm.com.crab.activity.ChangeInfoActivity
+import tkpm.com.crab.activity.HistoryActivity
 import tkpm.com.crab.adapter.MapPredictionAdapter
 import tkpm.com.crab.adapter.TypeVehicleAdapter
 import tkpm.com.crab.api.APICallback
@@ -187,6 +188,11 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
         // Set function to show payment method button
         findViewById<Button>(R.id.left_menu_payment_method).setOnClickListener {
             val intent = Intent(this, PaymentMethodActivity::class.java)
+            startActivity(intent)
+        }
+
+        findViewById<Button>(R.id.left_menu_history).setOnClickListener {
+            val intent = Intent(this, HistoryActivity::class.java)
             startActivity(intent)
         }
 

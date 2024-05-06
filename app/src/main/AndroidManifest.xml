@@ -21,6 +21,12 @@
         android:usesCleartextTraffic="true"
         tools:targetApi="31">
         <activity
+            android:name=".activity.HistoryActivity"
+            android:exported="false" />
+        <activity
+            android:name=".activity.HistoryDetailActivity"
+            android:exported="false" />
+        <activity
             android:name=".activity.driver.ChangeVehicleInfo"
             android:exported="false" />
         <activity
@@ -60,11 +66,11 @@
         <activity
             android:name=".activity.customer.MapsActivity"
             android:exported="true"
-            android:label="@string/title_activity_maps"></activity>
+            android:label="@string/title_activity_maps" />
         <activity
             android:name=".activity.driver.DriverMapActivity"
             android:exported="true"
-            android:label="@string/title_activity_maps"></activity>
+            android:label="@string/title_activity_maps" />
         <activity
             android:name=".MainActivity"
             android:exported="true">
