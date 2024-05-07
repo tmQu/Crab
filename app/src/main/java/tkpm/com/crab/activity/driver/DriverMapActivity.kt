@@ -15,6 +15,7 @@ import android.widget.Toast
 import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
 import androidx.constraintlayout.widget.ConstraintLayout
+import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import androidx.recyclerview.widget.RecyclerView
 import com.google.android.gms.location.FusedLocationProviderClient
@@ -114,7 +115,7 @@ class DriverMapActivity : AppCompatActivity(), OnMapReadyCallback {
     private val requests: MutableList<Booking> = ArrayList()
     private var currentBooking: Booking? = null
     private lateinit var requestRecyclerView: RecyclerView
-//    private lateinit var requestAdapter: RequestAdapter
+    private lateinit var vehicleType: String
 
 
     private val polylines: MutableList<Polyline> = ArrayList()
@@ -235,6 +236,26 @@ class DriverMapActivity : AppCompatActivity(), OnMapReadyCallback {
                 btnStep.text = "Đã trả"
             } else if (btnStep.text == "Đã trả") {
                 updateBookingStatus(booking.id, "completed")
+
+                // Close all fragments and back to default fragment to wait for new booking
+                driverStatus = ONLINE
+                webSocket.connectWebSocket(BuildConfig.BASE_URL_WS)
+                webSocket.driverOnline()
+                webSocket.updateVehicle(vehicleType)
+                webSocket.updateLocation(
+                    currentLocation.latitude, currentLocation.longitude
+                )
+                handleDriverStatus()
+                startBtnGroup.visibility = View.VISIBLE
+                btnStep.visibility = View.GONE
+                clearLines()
+                clearMarkers()
+
+                // Clear the current booking
+                currentBooking = null
+
+                // Set text
+                btnStep.text = "Đã đón"
             }
         }
         phoneBtn.setOnClickListener {
@@ -303,6 +324,8 @@ class DriverMapActivity : AppCompatActivity(), OnMapReadyCallback {
         enableEdgeToEdge()
         setContentView(R.layout.activity_driver_maps)
 
+        checkLocationPermission()
+
         // // Obtain the SupportMapFragment and get notified when the map is ready to be used.
         val mapFragment = supportFragmentManager.findFragmentById(R.id.map) as SupportMapFragment
         mapFragment.getMapAsync(this)
@@ -321,6 +344,16 @@ class DriverMapActivity : AppCompatActivity(), OnMapReadyCallback {
         handleDriverStatus()
 
         findViewById<Button>(R.id.connection_btn).setOnClickListener {
+            // Check if there is no current location -> Do not allow to connect
+            if (!::currentLocation.isInitialized) {
+                Toast.makeText(
+                    this@DriverMapActivity,
+                    "Không thể kết nối khi chưa bật vị trí",
+                    Toast.LENGTH_SHORT
+                ).show()
+                return@setOnClickListener
+            }
+
             APIService().doGet<Vehicle>("accounts/${CredentialService().get()}/vehicles",
                 object : APICallback<Any> {
                     override fun onSuccess(data: Any) {
@@ -336,11 +369,14 @@ class DriverMapActivity : AppCompatActivity(), OnMapReadyCallback {
                             return
                         }
 
+                        // Update vehicle type
+                        vehicleType = data.type
+
                         // Update driver status
                         driverStatus = ONLINE
                         webSocket.connectWebSocket(BuildConfig.BASE_URL_WS)
                         webSocket.driverOnline()
-                        webSocket.updateVehicle(data.type)
+                        webSocket.updateVehicle(vehicleType)
                         webSocket.updateLocation(
                             currentLocation.latitude, currentLocation.longitude
                         )
@@ -438,7 +474,14 @@ class DriverMapActivity : AppCompatActivity(), OnMapReadyCallback {
     override fun onMapReady(googleMap: GoogleMap) {
         mMap = googleMap
 
-        checkLocationPermission()
+        if (ActivityCompat.checkSelfPermission(
+                this, Manifest.permission.ACCESS_FINE_LOCATION
+            ) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(
+                this, Manifest.permission.ACCESS_COARSE_LOCATION
+            ) != PackageManager.PERMISSION_GRANTED
+        ) {
+            return
+        }
 
         mMap.isMyLocationEnabled = true
         mMap.uiSettings.isMyLocationButtonEnabled = true
@@ -458,12 +501,16 @@ class DriverMapActivity : AppCompatActivity(), OnMapReadyCallback {
         ).continueWith {
             val lastLocation = locationProviderClient.lastLocation
             lastLocation.addOnSuccessListener {
-                currentLocation = LatLng(it.latitude, it.longitude)
-                currentLocationMarker = mMap.addMarker(
-                    MarkerOptions().position(currentLocation).title("Current Location")
-                )
-                webSocket.updateLocation(currentLocation.latitude, currentLocation.longitude)
-                centreCameraOnLocation(currentLocation)
+                lastLocation.addOnSuccessListener {
+                    if (it != null) {
+                        currentLocation = LatLng(it.latitude, it.longitude)
+                        currentLocationMarker = mMap.addMarker(
+                            MarkerOptions().position(currentLocation).title("Current Location")
+                        )
+                        webSocket.updateLocation(currentLocation.latitude, currentLocation.longitude)
+                        centreCameraOnLocation(currentLocation)
+                    }
+                }
             }
         }
 

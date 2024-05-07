@@ -99,6 +99,8 @@ class CustomerMapsActivity : AppCompatActivity(), OnMapReadyCallback {
     private var destinationMarker: Marker? = null
     private var currentMarker: Marker? = null
 
+    private val polylines: MutableList<Polyline> = ArrayList()
+
     private var distance = 0L
     private var duration = 0L
 
@@ -280,9 +282,6 @@ class CustomerMapsActivity : AppCompatActivity(), OnMapReadyCallback {
 
     }
 
-
-    private var line: Polyline? = null
-
     fun showTheBottomLocation() {
         val timeTv = findViewById<TextView>(R.id.time)
         val distanceTv = findViewById<TextView>(R.id.distance)
@@ -294,6 +293,7 @@ class CustomerMapsActivity : AppCompatActivity(), OnMapReadyCallback {
         distanceTv.text = "${distance / 1000} km"
         adressTv.text = destinationAddress
         bottomChooseLocation.state = BottomSheetBehavior.STATE_EXPANDED
+        bottomChooseVehicle.state = BottomSheetBehavior.STATE_HIDDEN
         chooseBtn.setOnClickListener {
             bottomChooseVehicle.state = BottomSheetBehavior.STATE_EXPANDED
             bottomChooseLocation.state = BottomSheetBehavior.STATE_HIDDEN
@@ -396,10 +396,12 @@ class CustomerMapsActivity : AppCompatActivity(), OnMapReadyCallback {
         val origin = currentMarker?.position
         val destination = destinationMarker?.position
 
+        clearLines()
+
         val url =
             "https://maps.googleapis.com/maps/api/directions/json?origin=${origin?.latitude},${origin?.longitude}&destination=${destination?.latitude},${destination?.longitude}&key=${BuildConfig.MAPS_API_KEY}&mode=driving"
 
-        val directionRequest = DirectionRequest(mMap, origin!!, destination!!)
+        val directionRequest = DirectionRequest(mMap, origin!!, destination!!, polylines)
         val result = directionRequest.execute().get()
 
         // get the distance and time
@@ -569,9 +571,9 @@ class CustomerMapsActivity : AppCompatActivity(), OnMapReadyCallback {
                 this, Manifest.permission.ACCESS_COARSE_LOCATION
             ) != PackageManager.PERMISSION_GRANTED
         ) {
-
             return
         }
+
         mMap.isMyLocationEnabled = true
         mMap.uiSettings.isMyLocationButtonEnabled = true
         mMap.uiSettings.isZoomControlsEnabled = true
@@ -661,4 +663,10 @@ class CustomerMapsActivity : AppCompatActivity(), OnMapReadyCallback {
         imm?.hideSoftInputFromWindow(searchBox.windowToken, 0)
     }
 
+    private fun clearLines() {
+        for (line in polylines) {
+            line.remove()
+        }
+        polylines.clear()
+    }
 }

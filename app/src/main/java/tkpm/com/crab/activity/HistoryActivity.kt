@@ -43,7 +43,7 @@ class HistoryAdapter(val items: List<Booking>, val ctx: Context) :
     override fun onBindViewHolder(holder: ViewHolder, position: Int) {
         val item = items[position]
         val date = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.US).parse(item.createdAt)
-        holder.date.text = SimpleDateFormat("dd/MMM/yyyy HH:mm", Locale.US).format(date)
+        holder.date.text = SimpleDateFormat("dd/MM/yyyy HH:mm", Locale.US).format(date)
         holder.from.text = item.info.pickup.address
         holder.to.text = item.info.destination.address
         val formatter = NumberFormat.getCurrencyInstance()

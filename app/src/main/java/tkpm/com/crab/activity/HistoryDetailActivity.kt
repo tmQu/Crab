@@ -19,9 +19,8 @@ import tkpm.com.crab.activity.driver.Booking
 import tkpm.com.crab.api.APICallback
 import tkpm.com.crab.api.APIService
 import tkpm.com.crab.utils.DirectionRequest
+import tkpm.com.crab.utils.PriceDisplay
 import tkpm.com.crab.utils.addressOverview
-import java.text.NumberFormat
-import java.util.Currency
 
 class HistoryDetailActivity : AppCompatActivity(), OnMapReadyCallback {
     private val bookingId: String by lazy { intent.getStringExtra("bookingId")!! }
@@ -58,12 +57,9 @@ class HistoryDetailActivity : AppCompatActivity(), OnMapReadyCallback {
                     supportFragmentManager.findFragmentById(R.id.map) as SupportMapFragment
                 mapFragment.getMapAsync(this@HistoryDetailActivity)
 
-                pickupTextView.text = "From: ${addressOverview(data.info.pickup.address)}"
-                destinationTextView.text = "To: ${addressOverview(data.info.destination.address)}"
-                val formatter = NumberFormat.getCurrencyInstance()
-                formatter.currency = Currency.getInstance("VND")
-                formatter.maximumFractionDigits = 0
-                amountTextView.text = formatter.format(data.info.fee)
+                pickupTextView.text = "Từ: ${addressOverview(data.info.pickup.address)}"
+                destinationTextView.text = "Đến: ${addressOverview(data.info.destination.address)}"
+                amountTextView.text = PriceDisplay.formatVND(data.info.fee.toLong())
                 typeTextView.text = data.service
                 distanceTextView.text = "${data.info.distance / 1000} km"
                 // driverName.text = booking?.driver?.name
