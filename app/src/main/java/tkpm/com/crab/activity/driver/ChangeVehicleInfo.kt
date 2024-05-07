@@ -7,6 +7,7 @@ import android.widget.Button
 import android.widget.Toast
 import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
+import com.google.android.material.textfield.MaterialAutoCompleteTextView
 import tkpm.com.crab.R
 import tkpm.com.crab.api.APICallback
 import tkpm.com.crab.api.APIService
@@ -21,7 +22,7 @@ class ChangeVehicleInfo : AppCompatActivity() {
 
     private lateinit var loadingDialog: LoadingDialog
 
-    private lateinit var vehicleField: AutoCompleteTextView
+    private lateinit var vehicleField: MaterialAutoCompleteTextView
     private lateinit var plateField: com.google.android.material.textfield.TextInputEditText
     private lateinit var descriptionField: com.google.android.material.textfield.TextInputEditText
     private lateinit var submitButton: Button
@@ -43,10 +44,18 @@ class ChangeVehicleInfo : AppCompatActivity() {
     }
 
     private fun loadData() {
+        loadingDialog.startLoadingDialog()
+
         APIService().doGet<Vehicle>("accounts/${CredentialService().get()}/vehicles", object:
             APICallback<Any> {
             override fun onSuccess(data: Any) {
                 data as Vehicle
+
+                // Dismiss loading dialog
+                loadingDialog.dismissDialog()
+
+                // Set items for dropdown
+                vehicleField.setSimpleItems(vehicleValuesArr)
 
                 // Set data to fields
                 if (data.type == "")
@@ -66,6 +75,7 @@ class ChangeVehicleInfo : AppCompatActivity() {
             override fun onError(error: Throwable) {
                 Log.e("API_SERVICE", "Error: ${error.message}")
                 Toast.makeText(this@ChangeVehicleInfo, "Không thể lấy thông tin phương tiện", Toast.LENGTH_SHORT).show()
+                loadingDialog.dismissDialog()
             }
         })
     }

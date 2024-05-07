@@ -261,13 +261,11 @@ class DriverMapActivity : AppCompatActivity(), OnMapReadyCallback {
 
                 }
 
-                override fun onError(error: Throwable) {
-                    Toast.makeText(
-                        this@DriverMapActivity, "Error updating booking", Toast.LENGTH_SHORT
-                    ).show()
-                    Log.i("DriverMapActivity", "${error.message}")
-                }
-            })
+            override fun onError(error: Throwable) {
+                Toast.makeText(this@DriverMapActivity, "Không thể cập nhật thông tin đơn hàng", Toast.LENGTH_SHORT).show()
+                Log.i("DriverMapActivity", "${error.message}")
+            }
+        })
     }
 
     fun getBookingById(id: String) {
@@ -280,7 +278,9 @@ class DriverMapActivity : AppCompatActivity(), OnMapReadyCallback {
 
             override fun onError(error: Throwable) {
                 Toast.makeText(
-                    this@DriverMapActivity, "Error fetching booking", Toast.LENGTH_SHORT
+                    this@DriverMapActivity,
+                    "Không thể lấy thông tin đơn hàng",
+                    Toast.LENGTH_SHORT
                 ).show()
                 Log.i("DriverMapActivity", "${error.message}")
             }
@@ -334,14 +334,10 @@ class DriverMapActivity : AppCompatActivity(), OnMapReadyCallback {
                         data as VehicleValidation
                         val isVehicleAvailable = data.data
 
-                        if (!isVehicleAvailable) {
-                            Toast.makeText(
-                                this@DriverMapActivity,
-                                "Please update vehicle information",
-                                Toast.LENGTH_SHORT
-                            ).show()
-                            return
-                        }
+                    if (!isVehicleAvailable) {
+                        Toast.makeText(this@DriverMapActivity, "Hãy cập nhật thông tin phương tiện để nhận cuốc", Toast.LENGTH_SHORT).show()
+                        return
+                    }
 
                         // Update driver status
                         driverStatus = ONLINE
@@ -353,13 +349,11 @@ class DriverMapActivity : AppCompatActivity(), OnMapReadyCallback {
                         handleDriverStatus()
                     }
 
-                    override fun onError(error: Throwable) {
-                        Log.i("DriverMapActivity", "Error fetching account")
-                        Toast.makeText(
-                            this@DriverMapActivity, "Error fetching account", Toast.LENGTH_SHORT
-                        ).show()
-                    }
-                })
+                override fun onError(error: Throwable) {
+                    Log.i("DriverMapActivity", "Error fetching account")
+                    Toast.makeText(this@DriverMapActivity, "Lấy thông tin tài khoản thất bại", Toast.LENGTH_SHORT).show()
+                }
+            })
         }
 
         findViewById<Button>(R.id.disconnect_btn).setOnClickListener {
@@ -386,6 +380,12 @@ class DriverMapActivity : AppCompatActivity(), OnMapReadyCallback {
         // Set function to show the vehicle information button
         findViewById<Button>(R.id.left_menu_vehicle_info).setOnClickListener {
             val intent = Intent(this, ChangeVehicleInfo::class.java)
+            startActivity(intent)
+        }
+
+        // Set function to show driver income
+        findViewById<Button>(R.id.left_menu_income).setOnClickListener{
+            val intent = Intent(this, DriverIncomeActivity::class.java)
             startActivity(intent)
         }
 

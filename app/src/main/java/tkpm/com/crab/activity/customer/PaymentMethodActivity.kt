@@ -45,7 +45,7 @@ class PaymentAdapter(
         // Number == "" -> Cash
         if (currentItem.number == "") {
             holder.paymentNumber.text = ""
-            holder.paymentName.text = "Tền mặt"
+            holder.paymentName.text = "Tiền mặt"
             holder.paymentIcon.setImageResource(R.drawable.ic_cash)
         } else
         {

@@ -27,6 +27,9 @@
             android:name=".activity.HistoryDetailActivity"
             android:exported="false" />
         <activity
+            android:name=".activity.driver.DriverIncomeActivity"
+            android:exported="false" />
+        <activity
             android:name=".activity.driver.ChangeVehicleInfo"
             android:exported="false" />
         <activity
