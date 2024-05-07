@@ -61,7 +61,7 @@ import tkpm.com.crab.api.APICallback
 import tkpm.com.crab.api.APIService
 import tkpm.com.crab.credential_service.CredentialService
 import tkpm.com.crab.databinding.ActivityDriverMapsBinding
-import tkpm.com.crab.objects.VehicleValidation
+import tkpm.com.crab.objects.Vehicle
 import tkpm.com.crab.utils.PriceDisplay
 import java.net.URL
 
@@ -308,6 +308,8 @@ class DriverMapActivity : AppCompatActivity(), OnMapReadyCallback {
         enableEdgeToEdge()
         setContentView(R.layout.activity_driver_maps)
 
+        checkLocationPermission()
+
         // Obtain the SupportMapFragment and get notified when the map is ready to be used.
         val mapFragment = supportFragmentManager.findFragmentById(R.id.map) as SupportMapFragment
         mapFragment.getMapAsync(this)
@@ -320,29 +322,28 @@ class DriverMapActivity : AppCompatActivity(), OnMapReadyCallback {
         bottomConnect = findViewById(R.id.connection_bottom)
         bottomDisconnect = findViewById(R.id.disconnect_bottom)
 
-        checkLocationPermission()
         webSocket = WebSocket(this)
-
 
         driverStatus = OFFLINE
         handleDriverStatus()
 
         findViewById<Button>(R.id.connection_btn).setOnClickListener {
-            APIService().doGet<VehicleValidation>("accounts/${CredentialService().get()}/vehicles/validation",
+            APIService().doGet<Vehicle>("accounts/${CredentialService().get()}/vehicles",
                 object : APICallback<Any> {
                     override fun onSuccess(data: Any) {
-                        data as VehicleValidation
-                        val isVehicleAvailable = data.data
+                        data as Vehicle
+                        val isVehicleAvailable = (data.type != "")
 
-                    if (!isVehicleAvailable) {
-                        Toast.makeText(this@DriverMapActivity, "Hãy cập nhật thông tin phương tiện để nhận cuốc", Toast.LENGTH_SHORT).show()
-                        return
-                    }
+                        if (!isVehicleAvailable) {
+                            Toast.makeText(this@DriverMapActivity, "Hãy cập nhật thông tin phương tiện để nhận cuốc", Toast.LENGTH_SHORT).show()
+                            return
+                        }
 
                         // Update driver status
                         driverStatus = ONLINE
                         webSocket.connectWebSocket(BuildConfig.BASE_URL_WS)
                         webSocket.driverOnline()
+                        webSocket.updateVehicle(data.type)
                         webSocket.updateLocation(
                             currentLocation.latitude, currentLocation.longitude
                         )
@@ -710,6 +711,17 @@ class DriverMapActivity : AppCompatActivity(), OnMapReadyCallback {
         fun driverOffline() {
             val gson = Gson()
             val message = gson.toJson(DriverStatus("driverOffline", "driver"))
+            sendMessage(message)
+        }
+
+        internal class VehicleType(
+            val event: String,
+            val vehicle: String
+        )
+
+        fun updateVehicle(vehicleType: String){
+            val gson = Gson()
+            val message = gson.toJson(VehicleType("updateVehicle", vehicleType))
             sendMessage(message)
         }
 
