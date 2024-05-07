@@ -6,7 +6,7 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     xmlns:app="http://schemas.android.com/apk/res-auto"
-    tools:context=".activity.customer.MapsActivity">
+    tools:context=".activity.customer.CustomerMapsActivity">
 
     <androidx.constraintlayout.widget.ConstraintLayout
         android:id="@+id/constraintLayout"
@@ -34,6 +34,12 @@
             app:endIconMode="clear_text"
             app:endIconTint="#989898"
             app:hintEnabled="false"
+            map:boxBackgroundColor="#f7fbf2"
+            map:boxBackgroundMode="filled"
+            map:boxCornerRadiusBottomEnd="8dp"
+            map:boxCornerRadiusBottomStart="8dp"
+            map:boxCornerRadiusTopEnd="8dp"
+            map:boxCornerRadiusTopStart="8dp"
             map:layout_constraintBottom_toBottomOf="@+id/left_menu_button"
             map:layout_constraintEnd_toEndOf="parent"
             map:layout_constraintStart_toEndOf="@+id/left_menu_button"
@@ -44,7 +50,6 @@
                 android:id="@+id/autocomplete_addr"
                 android:layout_width="match_parent"
                 android:layout_height="60dp"
-                android:background="@drawable/bg_search_box"
                 android:drawableStart="@drawable/ic_search"
                 android:drawablePadding="20dp"
                 android:hint="Search your address"

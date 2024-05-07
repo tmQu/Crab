@@ -10,8 +10,6 @@ import android.view.ViewGroup
 import android.widget.TextView
 import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
-import androidx.core.view.ViewCompat
-import androidx.core.view.WindowInsetsCompat
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import tkpm.com.crab.R
@@ -38,7 +36,7 @@ class HistoryAdapter(val items: List<Booking>, val ctx: Context) :
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder {
         val view =
-            LayoutInflater.from(parent.context).inflate(R.layout.history_item_layout, parent, false)
+            LayoutInflater.from(parent.context).inflate(R.layout.item_history_layout, parent, false)
         return ViewHolder(view)
     }
 

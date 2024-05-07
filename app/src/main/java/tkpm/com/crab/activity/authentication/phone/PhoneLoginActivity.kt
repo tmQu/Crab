@@ -3,18 +3,16 @@ package tkpm.com.crab.activity.authentication.phone
 import android.Manifest
 import android.content.Intent
 import android.content.pm.PackageManager
-import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
 import android.util.Log
 import android.view.View.NOT_FOCUSABLE
 import android.view.inputmethod.InputMethodManager
-import android.widget.Button
 import android.widget.TextView
 import android.widget.Toast
+import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
 import com.google.android.material.button.MaterialButton
 import com.google.android.material.textfield.TextInputLayout
-import com.google.firebase.Firebase
 import com.google.firebase.FirebaseException
 import com.google.firebase.FirebaseTooManyRequestsException
 import com.google.firebase.auth.FirebaseAuth
@@ -23,7 +21,6 @@ import com.google.firebase.auth.FirebaseAuthMissingActivityForRecaptchaException
 import com.google.firebase.auth.PhoneAuthCredential
 import com.google.firebase.auth.PhoneAuthOptions
 import com.google.firebase.auth.PhoneAuthProvider
-import com.google.firebase.auth.auth
 import tkpm.com.crab.R
 import tkpm.com.crab.dialog.LoadingDialog
 import java.util.concurrent.TimeUnit
@@ -146,6 +143,12 @@ class PhoneLoginActivity : AppCompatActivity() {
                     }
 
                     // Show a message and update the UI
+                    progressDialog.dismissDialog()
+                    Toast.makeText(
+                        this@PhoneLoginActivity,
+                        "Failed to verify your phone number",
+                        Toast.LENGTH_SHORT
+                    ).show()
                 }
 
                 override fun onCodeSent(

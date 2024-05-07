@@ -6,16 +6,18 @@ import android.os.Handler
 import android.os.Looper
 import com.google.android.gms.maps.GoogleMap
 import com.google.android.gms.maps.model.LatLng
+import com.google.android.gms.maps.model.Polyline
 import com.google.android.gms.maps.model.PolylineOptions
 import org.json.JSONException
 import org.json.JSONObject
 import tkpm.com.crab.BuildConfig
 import java.net.URL
 
-public fun addressOverview(address: String): String {
+fun addressOverview(address: String): String {
     return address.substring(0, address.indexOf(","))
 }
-private fun drawPath(result: String?, mMap: GoogleMap, polylines: MutableList<Any>) {
+
+private fun drawPath(result: String?, mMap: GoogleMap, polylines: MutableList<Polyline>) {
     try {
         // Tranform the string into a json object
         val json = JSONObject(result!!)
@@ -69,27 +71,27 @@ private fun decodePoly(encoded: String): List<LatLng> {
     return poly
 }
 
-public class DirectionRequest : AsyncTask<Void, Void, String> {
+class DirectionRequest : AsyncTask<Void, Void, String> {
     private val mMap: GoogleMap
     private val url: String
-    private val polylines: MutableList<Any>
+    private val polylines: MutableList<Polyline>
 
     constructor(
         mMap: GoogleMap,
         pickup: LatLng,
         destination: LatLng,
-        polylines: MutableList<Any> = mutableListOf()
+        polylines: MutableList<Polyline> = mutableListOf()
     ) {
         this.mMap = mMap
         this.url =
             "https://maps.googleapis.com/maps/api/directions/json?origin=" + pickup.latitude + "," + pickup.longitude + "&destination=" + destination.latitude + "," + destination.longitude + "&key=" + BuildConfig.MAPS_API_KEY
-        this.polylines = mutableListOf()
+        this.polylines = polylines
     }
 
-    constructor(mMap: GoogleMap, url: String, polylines: MutableList<Any> = mutableListOf()) {
+    constructor(mMap: GoogleMap, url: String, polylines: MutableList<Polyline> = mutableListOf()) {
         this.mMap = mMap
         this.url = url
-        this.polylines = mutableListOf()
+        this.polylines = polylines
     }
 
     override fun doInBackground(vararg params: Void?): String? {

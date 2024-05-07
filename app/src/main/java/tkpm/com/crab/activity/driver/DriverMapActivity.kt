@@ -1,15 +1,10 @@
 package tkpm.com.crab.activity.driver
 
 import android.Manifest
-import android.app.AlertDialog
-import android.content.DialogInterface
 import android.content.Intent
 import android.content.pm.PackageManager
-import android.graphics.Color
 import android.net.Uri
-import android.os.AsyncTask
 import android.os.Bundle
-import android.os.Handler
 import android.os.Looper
 import android.util.Log
 import android.view.View
@@ -20,7 +15,6 @@ import android.widget.Toast
 import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
 import androidx.constraintlayout.widget.ConstraintLayout
-import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import androidx.recyclerview.widget.RecyclerView
 import com.google.android.gms.location.FusedLocationProviderClient
@@ -38,7 +32,6 @@ import com.google.android.gms.maps.model.LatLngBounds
 import com.google.android.gms.maps.model.Marker
 import com.google.android.gms.maps.model.MarkerOptions
 import com.google.android.gms.maps.model.Polyline
-import com.google.android.gms.maps.model.PolylineOptions
 import com.google.android.libraries.places.api.net.PlacesClient
 import com.google.android.material.bottomsheet.BottomSheetBehavior
 import com.google.android.material.sidesheet.SideSheetBehavior
@@ -50,8 +43,6 @@ import okhttp3.Request
 import okhttp3.Response
 import okhttp3.WebSocketListener
 import okio.ByteString
-import org.json.JSONException
-import org.json.JSONObject
 import tkpm.com.crab.BuildConfig
 import tkpm.com.crab.MainActivity
 import tkpm.com.crab.R
@@ -62,8 +53,8 @@ import tkpm.com.crab.api.APIService
 import tkpm.com.crab.credential_service.CredentialService
 import tkpm.com.crab.databinding.ActivityDriverMapsBinding
 import tkpm.com.crab.objects.Vehicle
+import tkpm.com.crab.utils.DirectionRequest
 import tkpm.com.crab.utils.PriceDisplay
-import java.net.URL
 
 data class MongoLocation(
     @SerializedName("_id") val id: String, val type: String, val coordinates: List<Double>
@@ -247,8 +238,8 @@ class DriverMapActivity : AppCompatActivity(), OnMapReadyCallback {
             }
         }
         phoneBtn.setOnClickListener {
-            val intent = Intent(Intent.ACTION_DIAL, Uri.parse("tel:" + booking.info.phone));
-            startActivity(intent);
+            val intent = Intent(Intent.ACTION_DIAL, Uri.parse("tel:" + booking.info.phone))
+            startActivity(intent)
         }
     }
 
@@ -261,11 +252,15 @@ class DriverMapActivity : AppCompatActivity(), OnMapReadyCallback {
 
                 }
 
-            override fun onError(error: Throwable) {
-                Toast.makeText(this@DriverMapActivity, "Không thể cập nhật thông tin đơn hàng", Toast.LENGTH_SHORT).show()
-                Log.i("DriverMapActivity", "${error.message}")
-            }
-        })
+                override fun onError(error: Throwable) {
+                    Toast.makeText(
+                        this@DriverMapActivity,
+                        "Không thể cập nhật thông tin đơn hàng",
+                        Toast.LENGTH_SHORT
+                    ).show()
+                    Log.i("DriverMapActivity", "${error.message}")
+                }
+            })
     }
 
     fun getBookingById(id: String) {
@@ -308,9 +303,7 @@ class DriverMapActivity : AppCompatActivity(), OnMapReadyCallback {
         enableEdgeToEdge()
         setContentView(R.layout.activity_driver_maps)
 
-        checkLocationPermission()
-
-        // Obtain the SupportMapFragment and get notified when the map is ready to be used.
+        // // Obtain the SupportMapFragment and get notified when the map is ready to be used.
         val mapFragment = supportFragmentManager.findFragmentById(R.id.map) as SupportMapFragment
         mapFragment.getMapAsync(this)
 
@@ -335,7 +328,11 @@ class DriverMapActivity : AppCompatActivity(), OnMapReadyCallback {
                         val isVehicleAvailable = (data.type != "")
 
                         if (!isVehicleAvailable) {
-                            Toast.makeText(this@DriverMapActivity, "Hãy cập nhật thông tin phương tiện để nhận cuốc", Toast.LENGTH_SHORT).show()
+                            Toast.makeText(
+                                this@DriverMapActivity,
+                                "Hãy cập nhật thông tin phương tiện để nhận cuốc",
+                                Toast.LENGTH_SHORT
+                            ).show()
                             return
                         }
 
@@ -350,11 +347,15 @@ class DriverMapActivity : AppCompatActivity(), OnMapReadyCallback {
                         handleDriverStatus()
                     }
 
-                override fun onError(error: Throwable) {
-                    Log.i("DriverMapActivity", "Error fetching account")
-                    Toast.makeText(this@DriverMapActivity, "Lấy thông tin tài khoản thất bại", Toast.LENGTH_SHORT).show()
-                }
-            })
+                    override fun onError(error: Throwable) {
+                        Log.i("DriverMapActivity", "Error fetching account")
+                        Toast.makeText(
+                            this@DriverMapActivity,
+                            "Lấy thông tin tài khoản thất bại",
+                            Toast.LENGTH_SHORT
+                        ).show()
+                    }
+                })
         }
 
         findViewById<Button>(R.id.disconnect_btn).setOnClickListener {
@@ -385,7 +386,7 @@ class DriverMapActivity : AppCompatActivity(), OnMapReadyCallback {
         }
 
         // Set function to show driver income
-        findViewById<Button>(R.id.left_menu_income).setOnClickListener{
+        findViewById<Button>(R.id.left_menu_income).setOnClickListener {
             val intent = Intent(this, DriverIncomeActivity::class.java)
             startActivity(intent)
         }
@@ -415,7 +416,10 @@ class DriverMapActivity : AppCompatActivity(), OnMapReadyCallback {
             currentLocation = LatLng(
                 locationResult.lastLocation!!.latitude, locationResult.lastLocation!!.longitude
             )
+            Log.i("SHIT!", "callback")
+
             currentLocationMarker?.position = currentLocation
+            // webSocket.updateLocation(currentLocation.latitude, currentLocation.longitude)
 
         }
     }
@@ -434,12 +438,13 @@ class DriverMapActivity : AppCompatActivity(), OnMapReadyCallback {
     override fun onMapReady(googleMap: GoogleMap) {
         mMap = googleMap
 
+        checkLocationPermission()
+
         mMap.isMyLocationEnabled = true
         mMap.uiSettings.isMyLocationButtonEnabled = true
         mMap.uiSettings.isZoomControlsEnabled = true
         mMap.uiSettings.isCompassEnabled = true
 
-        checkLocationPermission()
         locationProviderClient = LocationServices.getFusedLocationProviderClient(this)
 
         locationRequest = LocationRequest.create().apply {
@@ -481,40 +486,21 @@ class DriverMapActivity : AppCompatActivity(), OnMapReadyCallback {
     private fun checkLocationPermission() {
         if (ContextCompat.checkSelfPermission(
                 this, Manifest.permission.ACCESS_FINE_LOCATION
-            ) != PackageManager.PERMISSION_GRANTED && ContextCompat.checkSelfPermission(
+            ) == PackageManager.PERMISSION_GRANTED && ContextCompat.checkSelfPermission(
                 this, Manifest.permission.ACCESS_COARSE_LOCATION
-            ) != PackageManager.PERMISSION_GRANTED
+            ) == PackageManager.PERMISSION_GRANTED
         ) {
-            if (ActivityCompat.shouldShowRequestPermissionRationale(
-                    this, Manifest.permission.ACCESS_FINE_LOCATION
-                ) && ActivityCompat.shouldShowRequestPermissionRationale(
-                    this, Manifest.permission.ACCESS_COARSE_LOCATION
-                )
-            ) {
-                AlertDialog.Builder(this).setTitle("give permission")
-                    .setMessage("give permission message").setPositiveButton(
-                        "OK"
-                    ) { dialogInterface: DialogInterface?, i: Int ->
-                        ActivityCompat.requestPermissions(
-                            this@DriverMapActivity, arrayOf(
-                                Manifest.permission.ACCESS_FINE_LOCATION,
-                                Manifest.permission.ACCESS_COARSE_LOCATION
-                            ), 1
-                        )
-                    }.create().show()
-            } else {
-                ActivityCompat.requestPermissions(
-                    this@DriverMapActivity, arrayOf(
-                        Manifest.permission.ACCESS_FINE_LOCATION,
-                        Manifest.permission.ACCESS_COARSE_LOCATION,
-                        Manifest.permission.CALL_PHONE
-                    ), 1
-                )
-            }
+
+        } else {
+            requestPermissions(
+                arrayOf(
+                    Manifest.permission.ACCESS_FINE_LOCATION,
+                    Manifest.permission.ACCESS_COARSE_LOCATION
+                ), 1
+            )
         }
-
-
     }
+
 
     private fun centreCameraOnLocation(location: LatLng, zoom: Float = 15f) {
         mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(location, zoom))
@@ -533,83 +519,6 @@ class DriverMapActivity : AppCompatActivity(), OnMapReadyCallback {
         polylines.clear()
     }
 
-    private fun drawPath(result: String?) {
-        try {
-            // Tranform the string into a json object
-            val json = JSONObject(result!!)
-            val routeArray = json.getJSONArray("routes")
-            val routes = routeArray.getJSONObject(0)
-            val overviewPolylines = routes.getJSONObject("overview_polyline")
-            val encodedString = overviewPolylines.getString("points")
-            val list = decodePoly(encodedString)
-            // clearLines()
-            val line = mMap.addPolyline(
-                PolylineOptions().addAll(list).width(12f)
-                    .color(Color.parseColor("#05b1fb")) // Google maps blue color
-                    .geodesic(true)
-            )
-            polylines.add(line)
-        } catch (e: JSONException) {
-        }
-    }
-
-    private fun decodePoly(encoded: String): List<LatLng> {
-        val poly: MutableList<LatLng> = ArrayList()
-        var index = 0
-        val len = encoded.length
-        var lat = 0
-        var lng = 0
-        while (index < len) {
-            var b: Int
-            var shift = 0
-            var result = 0
-            do {
-                b = encoded[index++].code - 63
-                result = result or (b and 0x1f shl shift)
-                shift += 5
-            } while (b >= 0x20)
-            val dlat = if (result and 1 != 0) (result shr 1).inv() else result shr 1
-            lat += dlat
-            shift = 0
-            result = 0
-            do {
-                b = encoded[index++].code - 63
-                result = result or (b and 0x1f shl shift)
-                shift += 5
-            } while (b >= 0x20)
-            val dlng = if (result and 1 != 0) (result shr 1).inv() else result shr 1
-            lng += dlng
-            val p = LatLng(
-                lat.toDouble() / 1E5, lng.toDouble() / 1E5
-            )
-            poly.add(p)
-        }
-        return poly
-    }
-
-    class DirectionRequest(private val activity: DriverMapActivity, private val url: String) :
-        AsyncTask<Void?, Void?, String?>() {
-        override fun doInBackground(vararg params: Void?): String? {
-            val result: String
-            val handler = Handler(Looper.getMainLooper())
-            try {
-                val data = url.let { URL(it).readText() }
-                result = data
-            } catch (e: Exception) {
-                handler.post {
-                    Toast.makeText(activity, "Error: ${e.message}", Toast.LENGTH_SHORT).show()
-                }
-                return null
-            }
-            return result
-        }
-
-        override fun onPostExecute(result: String?) {
-            super.onPostExecute(result)
-            activity.drawPath(result)
-        }
-    }
-
     fun getDirection(origin: LatLng?, destination: LatLng?, clear: Boolean = false) {
         if (clear) {
             clearLines()
@@ -620,10 +529,10 @@ class DriverMapActivity : AppCompatActivity(), OnMapReadyCallback {
                 LatLngBounds.Builder().include(origin!!).include(destination!!).build(), 50
             )
         )
-        val url =
-            "https://maps.googleapis.com/maps/api/directions/json?origin=${origin?.latitude},${origin?.longitude}&destination=${destination?.latitude},${destination?.longitude}&key=${BuildConfig.MAPS_API_KEY}&mode=driving"
+        // val url =
+        //     "https://maps.googleapis.com/maps/api/directions/json?origin=${origin?.latitude},${origin?.longitude}&destination=${destination?.latitude},${destination?.longitude}&key=${BuildConfig.MAPS_API_KEY}&mode=driving"
 
-        val directionRequest = DirectionRequest(this, url)
+        val directionRequest = DirectionRequest(mMap, origin, destination, polylines)
         directionRequest.execute()
     }
 
@@ -719,7 +628,7 @@ class DriverMapActivity : AppCompatActivity(), OnMapReadyCallback {
             val vehicle: String
         )
 
-        fun updateVehicle(vehicleType: String){
+        fun updateVehicle(vehicleType: String) {
             val gson = Gson()
             val message = gson.toJson(VehicleType("updateVehicle", vehicleType))
             sendMessage(message)

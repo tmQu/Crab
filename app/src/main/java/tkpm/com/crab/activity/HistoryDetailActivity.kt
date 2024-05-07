@@ -65,7 +65,7 @@ class HistoryDetailActivity : AppCompatActivity(), OnMapReadyCallback {
                 formatter.maximumFractionDigits = 0
                 amountTextView.text = formatter.format(data.info.fee)
                 typeTextView.text = data.service
-                distanceTextView.text = "${data.info.distance} km"
+                distanceTextView.text = "${data.info.distance / 1000} km"
                 // driverName.text = booking?.driver?.name
             }
 

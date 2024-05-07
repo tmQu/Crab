@@ -27,7 +27,9 @@
         android:layout_marginEnd="16dp"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/payment_method_list_title" />
+        app:layout_constraintTop_toBottomOf="@+id/payment_method_list_title"
+        tools:itemCount="2"
+        tools:listitem="@layout/item_payment_method_layout" />
 
     <TextView
         android:id="@+id/payment_method_new_title"

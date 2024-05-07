@@ -6,8 +6,6 @@ import android.app.Activity
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
-import android.graphics.Color
-import android.os.AsyncTask
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
@@ -46,7 +44,6 @@ import com.google.android.gms.maps.model.LatLng
 import com.google.android.gms.maps.model.Marker
 import com.google.android.gms.maps.model.MarkerOptions
 import com.google.android.gms.maps.model.Polyline
-import com.google.android.gms.maps.model.PolylineOptions
 import com.google.android.libraries.places.api.Places
 import com.google.android.libraries.places.api.model.AutocompleteSessionToken
 import com.google.android.libraries.places.api.model.Place
@@ -73,10 +70,10 @@ import tkpm.com.crab.objects.BookingRequest
 import tkpm.com.crab.objects.PaymentMethodSerializable
 import tkpm.com.crab.objects.VehicleTypePrice
 import tkpm.com.crab.objects.VehilceTypePriceResponse
-import java.net.URL
+import tkpm.com.crab.utils.DirectionRequest
 
 
-class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
+class CustomerMapsActivity : AppCompatActivity(), OnMapReadyCallback {
     val REQUEST_CODE_PERMISSION = 1
     val TAG = "MapsActivity"
 
@@ -153,10 +150,10 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
         bottomChooseLocation.state = BottomSheetBehavior.STATE_HIDDEN
         leftUserMenu.state = SideSheetBehavior.STATE_HIDDEN
 
-        bottomChooseVehicle.addBottomSheetCallback(object : BottomSheetBehavior.BottomSheetCallback() {
+        bottomChooseVehicle.addBottomSheetCallback(object :
+            BottomSheetBehavior.BottomSheetCallback() {
             override fun onStateChanged(bottomSheet: View, newState: Int) {
-                if(newState == BottomSheetBehavior.STATE_HIDDEN)
-                {
+                if (newState == BottomSheetBehavior.STATE_HIDDEN) {
                     bottomChooseLocation.state = BottomSheetBehavior.STATE_COLLAPSED
                 }
             }
@@ -180,7 +177,7 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
         }
 
         // Set function to show the user information button
-        findViewById<Button>(R.id.left_menu_user_info).setOnClickListener{
+        findViewById<Button>(R.id.left_menu_user_info).setOnClickListener {
             val intent = Intent(this, ChangeInfoActivity::class.java)
             startActivity(intent)
         }
@@ -209,25 +206,32 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
         }
 
         // Init result launcher
-        resultLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
-            if (result.resultCode == Activity.RESULT_OK) {
-                // Handle the returned result here
-                val data: Intent? = result.data
-                val paymentMethod = data?.getSerializableExtra("paymentMethod") as PaymentMethodSerializable
+        resultLauncher =
+            registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
+                if (result.resultCode == Activity.RESULT_OK) {
+                    // Handle the returned result here
+                    val data: Intent? = result.data
+                    val paymentMethod =
+                        data?.getSerializableExtra("paymentMethod") as PaymentMethodSerializable
 
-                // Change text and icon of payment method
-                if (paymentMethod.number == "") {
-                    findViewById<TextView>(R.id.bottom_type_vehicle_payment_name).text = "Tiền mặt"
-                    findViewById<ImageView>(R.id.bottom_type_vehicle_payment_icon).setImageResource(R.drawable.ic_cash)
-                    visaId = ""
-                } else
-                {
-                    findViewById<TextView>(R.id.bottom_type_vehicle_payment_name).text = "Visa*" + paymentMethod?.number?.takeLast(4)
-                    findViewById<ImageView>(R.id.bottom_type_vehicle_payment_icon).setImageResource(R.drawable.ic_visa)
-                    visaId = paymentMethod.id
+                    // Change text and icon of payment method
+                    if (paymentMethod.number == "") {
+                        findViewById<TextView>(R.id.bottom_type_vehicle_payment_name).text =
+                            "Tiền mặt"
+                        findViewById<ImageView>(R.id.bottom_type_vehicle_payment_icon).setImageResource(
+                            R.drawable.ic_cash
+                        )
+                        visaId = ""
+                    } else {
+                        findViewById<TextView>(R.id.bottom_type_vehicle_payment_name).text =
+                            "Visa*" + paymentMethod.number.takeLast(4)
+                        findViewById<ImageView>(R.id.bottom_type_vehicle_payment_icon).setImageResource(
+                            R.drawable.ic_visa
+                        )
+                        visaId = paymentMethod.id
+                    }
                 }
             }
-        }
 
         // Set function to choose payment method
         findViewById<LinearLayout>(R.id.bottom_type_vehicle_payment).setOnClickListener {
@@ -239,124 +243,45 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
     private fun createRequest() {
         val user = FirebaseAuth.getInstance().currentUser
         val phone = user?.phoneNumber ?: ""
+
+        if (currentMarker == null || destinationMarker == null || currentAddress.isEmpty() || destinationAddress.isEmpty() || vehicleType == null) {
+            Toast.makeText(this, "Do please, make your choices.", Toast.LENGTH_SHORT).show()
+            return
+        }
+
         val data = BookingRequest(
-            currentMarker?.position?.latitude ?: 0.0,
-            currentMarker?.position?.longitude ?: 0.0,
-            destinationMarker?.position?.latitude ?: 0.0,
-            destinationMarker?.position?.longitude ?: 0.0,
-            currentAddress ?: "",
-            destinationAddress ?: "",
+            currentMarker!!.position.latitude,
+            currentMarker!!.position.longitude,
+            destinationMarker!!.position.latitude,
+            destinationMarker!!.position.longitude,
+            currentAddress,
+            destinationAddress,
             CredentialService().getAll().name,
             phone,
             CredentialService().get(),
-            vehicleType?.typeVehicle ?: "",
-            vehicleType?.typeName ?: "",
-            vehicleType?.fee ?: 0,
-            visaId
+            vehicleType!!.typeVehicle,
+            vehicleType!!.typeName,
+            vehicleType!!.fee,
+            visaId,
+            distance,
+            duration
         )
 
         APIService().doPost<BookingRequest>("bookings", data, object : APICallback<Any> {
             override fun onSuccess(result: Any) {
-                Toast.makeText(this@MapsActivity, "Success", Toast.LENGTH_SHORT).show()
+                Toast.makeText(this@CustomerMapsActivity, "Success", Toast.LENGTH_SHORT).show()
             }
 
             override fun onError(t: Throwable) {
-                Toast.makeText(this@MapsActivity, "Error: ${t.message}", Toast.LENGTH_SHORT).show()
+                Toast.makeText(this@CustomerMapsActivity, "Error: ${t.message}", Toast.LENGTH_SHORT)
+                    .show()
             }
         })
 
     }
 
 
-
     private var line: Polyline? = null
-
-    fun drawPath(result: String?) {
-        try {
-            // Tranform the string into a json object
-            val json = JSONObject(result!!)
-            val routeArray = json.getJSONArray("routes")
-            val routes = routeArray.getJSONObject(0)
-            val overviewPolylines = routes.getJSONObject("overview_polyline")
-            val encodedString = overviewPolylines.getString("points")
-            val list = decodePoly(encodedString)
-            if (line != null) line?.remove()
-            line = mMap.addPolyline(
-                PolylineOptions().addAll(list).width(12f)
-                    .color(Color.parseColor("#05b1fb")) // Google maps blue color
-                    .geodesic(true)
-            )
-        } catch (e: JSONException) {
-        }
-    }
-
-    private fun decodePoly(encoded: String): List<LatLng> {
-        val poly: MutableList<LatLng> = ArrayList()
-        var index = 0
-        val len = encoded.length
-        var lat = 0
-        var lng = 0
-        while (index < len) {
-            var b: Int
-            var shift = 0
-            var result = 0
-            do {
-                b = encoded[index++].code - 63
-                result = result or (b and 0x1f shl shift)
-                shift += 5
-            } while (b >= 0x20)
-            val dlat = if (result and 1 != 0) (result shr 1).inv() else result shr 1
-            lat += dlat
-            shift = 0
-            result = 0
-            do {
-                b = encoded[index++].code - 63
-                result = result or (b and 0x1f shl shift)
-                shift += 5
-            } while (b >= 0x20)
-            val dlng = if (result and 1 != 0) (result shr 1).inv() else result shr 1
-            lng += dlng
-            val p = LatLng(
-                lat.toDouble() / 1E5, lng.toDouble() / 1E5
-            )
-            poly.add(p)
-        }
-        return poly
-    }
-
-
-    class DirectionRequest(private val activity: MapsActivity, private val url: String) :
-        AsyncTask<Void?, Void?, String?>() {
-        override fun doInBackground(vararg params: Void?): String? {
-            val result: String
-            val handler = Handler(Looper.getMainLooper())
-            try {
-                val data = url.let { URL(it).readText() }
-                result = data
-            } catch (e: Exception) {
-                handler.post {
-                    Toast.makeText(activity, "Error: ${e.message}", Toast.LENGTH_SHORT).show()
-                }
-                return null
-            }
-            return result
-        }
-
-        override fun onPostExecute(result: String?) {
-            super.onPostExecute(result)
-
-            // get the distance and time
-            activity.getDistance(result)
-            activity.getTime(result)
-
-            activity.getDesAddress(result)
-            activity.showTheBottomLocation()
-            activity.drawPath(result)
-        }
-
-
-
-    }
 
     fun showTheBottomLocation() {
         val timeTv = findViewById<TextView>(R.id.time)
@@ -365,7 +290,7 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
         val chooseBtn = findViewById<Button>(R.id.choose_location)
 
 
-        timeTv.text = "(${duration / 60})"
+        timeTv.text = "(${duration / 60} mins)"
         distanceTv.text = "${distance / 1000} km"
         adressTv.text = destinationAddress
         bottomChooseLocation.state = BottomSheetBehavior.STATE_EXPANDED
@@ -385,28 +310,38 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
         payBtn.setOnClickListener {
             createRequest()
         }
-        val data = mapOf("distance" to distance/1000)
+        val data = mapOf("distance" to distance / 1000)
 
-        APIService().doPost<VehilceTypePriceResponse>("fee/get-fee", data, object : APICallback<Any> {
-            override fun onSuccess(result: Any) {
+        APIService().doPost<VehilceTypePriceResponse>(
+            "fee/get-fee",
+            data,
+            object : APICallback<Any> {
+                override fun onSuccess(result: Any) {
 
-                val data = (result as VehilceTypePriceResponse).fee
-                typeVehicleRv.adapter = TypeVehicleAdapter(data.toList()) {
-                    vehicleType = data[it]
+                    val data = (result as VehilceTypePriceResponse).fee
+                    typeVehicleRv.adapter = TypeVehicleAdapter(data.toList()) {
+                        vehicleType = data[it]
+                    }
+                    typeVehicleRv.layoutManager = LinearLayoutManager(
+                        this@CustomerMapsActivity,
+                        LinearLayoutManager.VERTICAL,
+                        false
+                    )
                 }
-                typeVehicleRv.layoutManager = LinearLayoutManager(this@MapsActivity, LinearLayoutManager.VERTICAL, false)
-            }
 
-            override fun onError(t: Throwable) {
-                Toast.makeText(this@MapsActivity, "Error: ${t.message}", Toast.LENGTH_SHORT).show()
-                Log.i("MapsActivity", t.message.toString())
+                override fun onError(t: Throwable) {
+                    Toast.makeText(
+                        this@CustomerMapsActivity,
+                        "Error: ${t.message}",
+                        Toast.LENGTH_SHORT
+                    ).show()
+                    Log.i("MapsActivity", t.message.toString())
 
-            }
-        })
+                }
+            })
     }
 
-    fun getDesAddress(result: String?)
-    {
+    fun getDesAddress(result: String?) {
         try {
             // Tranform the string into a json object
             val json = JSONObject(result!!)
@@ -464,8 +399,16 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
         val url =
             "https://maps.googleapis.com/maps/api/directions/json?origin=${origin?.latitude},${origin?.longitude}&destination=${destination?.latitude},${destination?.longitude}&key=${BuildConfig.MAPS_API_KEY}&mode=driving"
 
-        val directionRequest = DirectionRequest(this, url)
-        directionRequest.execute()
+        val directionRequest = DirectionRequest(mMap, origin!!, destination!!)
+        val result = directionRequest.execute().get()
+
+        // get the distance and time
+        getDistance(result)
+        getTime(result)
+
+        getDesAddress(result)
+        showTheBottomLocation()
+        // drawPath(result)
 
     }
 
@@ -565,7 +508,8 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
     private fun setDestinationLocationMarker(latLng: LatLng) {
         destinationMarker?.remove()
         val markerOptions = MarkerOptions().position(latLng)
-            .icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_RED)).draggable(true)
+            .icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_RED))
+            .draggable(true)
         destinationMarker = mMap.addMarker(markerOptions)
     }
 
@@ -636,8 +580,7 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
 
         mMap.setOnMarkerClickListener(object : GoogleMap.OnMarkerClickListener {
             override fun onMarkerClick(p0: Marker): Boolean {
-                if(p0 == destinationMarker)
-                {
+                if (p0 == destinationMarker) {
                     bottomChooseLocation.state = BottomSheetBehavior.STATE_EXPANDED
                     return true
                 }
@@ -714,7 +657,7 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
 
     private fun clearFocusAndHideKeyboard(searchBox: AutoCompleteTextView) {
         searchBox.clearFocus()
-        val imm = this?.getSystemService(Context.INPUT_METHOD_SERVICE) as? InputMethodManager
+        val imm = this.getSystemService(Context.INPUT_METHOD_SERVICE) as? InputMethodManager
         imm?.hideSoftInputFromWindow(searchBox.windowToken, 0)
     }
 

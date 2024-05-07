@@ -1,6 +1,6 @@
 package tkpm.com.crab.objects
 
-data class BookingRequest (
+data class BookingRequest(
     val pLat: Double,
     val pLng: Double,
     val dLat: Double,
@@ -13,6 +13,8 @@ data class BookingRequest (
     val vehicle: String,
     val service: String,
     val fee: Int,
-    val visa: String
+    val visa: String,
+    val distance: Long,
+    val duration: Long
 )
 

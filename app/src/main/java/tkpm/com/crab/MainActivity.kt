@@ -14,9 +14,9 @@ import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
 import com.google.firebase.FirebaseApp
 import tkpm.com.crab.activity.UpdateInfoActivity
-import tkpm.com.crab.activity.driver.DriverMapActivity
-import tkpm.com.crab.activity.customer.MapsActivity
 import tkpm.com.crab.activity.authentication.phone.PhoneLoginActivity
+import tkpm.com.crab.activity.customer.CustomerMapsActivity
+import tkpm.com.crab.activity.driver.DriverMapActivity
 import tkpm.com.crab.credential_service.CredentialService
 
 class MainActivity : AppCompatActivity() {
@@ -67,7 +67,7 @@ class MainActivity : AppCompatActivity() {
                         if(CredentialService().getAll().role == "driver")
                             Intent(this@MainActivity, DriverMapActivity::class.java)
                         else
-                            Intent(this@MainActivity, MapsActivity::class.java)
+                            Intent(this@MainActivity, CustomerMapsActivity::class.java)
                     }
 
                 intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
