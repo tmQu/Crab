@@ -10,6 +10,7 @@ import android.os.Looper
 import android.util.Log
 import android.view.View
 import android.widget.Button
+import android.widget.ImageButton
 import android.widget.LinearLayout
 import android.widget.TextView
 import android.widget.Toast
@@ -30,6 +31,7 @@ import com.google.android.gms.maps.CameraUpdateFactory
 import com.google.android.gms.maps.GoogleMap
 import com.google.android.gms.maps.OnMapReadyCallback
 import com.google.android.gms.maps.SupportMapFragment
+import com.google.android.gms.maps.model.BitmapDescriptorFactory
 import com.google.android.gms.maps.model.LatLng
 import com.google.android.gms.maps.model.LatLngBounds
 import com.google.android.gms.maps.model.Marker
@@ -107,7 +109,7 @@ class DriverMapActivity : AppCompatActivity(), OnMapReadyCallback {
 
     private lateinit var currentLocation: LatLng
 
-    private var currentLocationMarker: Marker? = null
+//    private var currentLocationMarker: Marker? = null
     private var destinationMarker: Marker? = null
     private var pickupMarker: Marker? = null
 
@@ -194,7 +196,7 @@ class DriverMapActivity : AppCompatActivity(), OnMapReadyCallback {
                     booking.info.pickup.location.coordinates[1],
                     booking.info.pickup.location.coordinates[0]
                 )
-            ).title("Pickup Location")
+            ).title("Pickup Location").icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_AZURE))
         )
         destinationMarker = mMap.addMarker(
             MarkerOptions().position(
@@ -221,11 +223,11 @@ class DriverMapActivity : AppCompatActivity(), OnMapReadyCallback {
                         booking.info.pickup.location.coordinates[1],
                         booking.info.pickup.location.coordinates[0]
                     )
-                ).title("Pickup Location")
+                ).title("Pickup Location").icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_AZURE))
             )
-            currentLocationMarker = mMap.addMarker(
-                MarkerOptions().position(currentLocation).title("Current Location")
-            )
+//            currentLocationMarker = mMap.addMarker(
+//                MarkerOptions().position(currentLocation).title("Current Location")
+//            )
 
             updateBookingStatus(booking.id, "accepted")
         }
@@ -259,7 +261,7 @@ class DriverMapActivity : AppCompatActivity(), OnMapReadyCallback {
                             booking.info.pickup.location.coordinates[1],
                             booking.info.pickup.location.coordinates[0]
                         )
-                    ).title("Pickup Location")
+                    ).title("Pickup Location").icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_AZURE))
                 )
 
                 destinationMarker = mMap.addMarker(
@@ -469,6 +471,27 @@ class DriverMapActivity : AppCompatActivity(), OnMapReadyCallback {
             startActivity(intent)
             finish()
         }
+
+        // Set function for here button
+        findViewById<ImageButton>(R.id.here_btn).setOnClickListener{
+            // Zoom in current location if available
+            locationProviderClient = LocationServices.getFusedLocationProviderClient(this)
+
+            try {
+                val locationRequest = locationProviderClient.lastLocation
+                locationRequest.addOnCompleteListener {
+                    if (it.isSuccessful) {
+                        val location = it.result
+                        if (location != null) {
+                            val latLng = LatLng(location.latitude, location.longitude)
+                            mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(latLng, 15f))
+                        }
+                    }
+                }
+            } catch (error: SecurityException) {
+                Log.e("SET_CURRENT_LOCATION", "Error getting device location: ${error.message}")
+            }
+        }
     }
 
 
@@ -480,7 +503,7 @@ class DriverMapActivity : AppCompatActivity(), OnMapReadyCallback {
             )
             Log.i("SHIT!", "callback")
 
-            currentLocationMarker?.position = currentLocation
+//            currentLocationMarker?.position = currentLocation
             // webSocket.updateLocation(currentLocation.latitude, currentLocation.longitude)
 
         }
@@ -500,6 +523,12 @@ class DriverMapActivity : AppCompatActivity(), OnMapReadyCallback {
     override fun onMapReady(googleMap: GoogleMap) {
         mMap = googleMap
 
+        // Disable zoom controls
+        mMap.uiSettings.isZoomControlsEnabled = false
+
+        // Disable my location button
+        mMap.uiSettings.isMyLocationButtonEnabled = false
+
         if (ActivityCompat.checkSelfPermission(
                 this, Manifest.permission.ACCESS_FINE_LOCATION
             ) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(
@@ -510,9 +539,9 @@ class DriverMapActivity : AppCompatActivity(), OnMapReadyCallback {
         }
 
         mMap.isMyLocationEnabled = true
-        mMap.uiSettings.isMyLocationButtonEnabled = true
-        mMap.uiSettings.isZoomControlsEnabled = true
-        mMap.uiSettings.isCompassEnabled = true
+        mMap.uiSettings.isMyLocationButtonEnabled = false
+        mMap.uiSettings.isZoomControlsEnabled = false
+        mMap.uiSettings.isCompassEnabled = false
 
         locationProviderClient = LocationServices.getFusedLocationProviderClient(this)
 
@@ -530,9 +559,9 @@ class DriverMapActivity : AppCompatActivity(), OnMapReadyCallback {
                 lastLocation.addOnSuccessListener {
                     if (it != null) {
                         currentLocation = LatLng(it.latitude, it.longitude)
-                        currentLocationMarker = mMap.addMarker(
-                            MarkerOptions().position(currentLocation).title("Current Location")
-                        )
+//                        currentLocationMarker = mMap.addMarker(
+//                            MarkerOptions().position(currentLocation).title("Current Location")
+//                        )
                         webSocket.updateLocation(currentLocation.latitude, currentLocation.longitude)
                         centreCameraOnLocation(currentLocation)
                     }
@@ -580,7 +609,7 @@ class DriverMapActivity : AppCompatActivity(), OnMapReadyCallback {
     }
 
     private fun clearMarkers() {
-        currentLocationMarker?.remove()
+//        currentLocationMarker?.remove()
         destinationMarker?.remove()
         pickupMarker?.remove()
     }
