@@ -6,7 +6,3 @@ data class Vehicle (
     val plate: String,
     val description: String,
 )
-
-data class VehicleValidation (
-    val data: Boolean
-)

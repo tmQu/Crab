@@ -6,7 +6,7 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    tools:context=".activity.customer.MapsActivity">
+    tools:context=".activity.customer.CustomerMapsActivity">
     <androidx.constraintlayout.widget.ConstraintLayout
         android:layout_width="match_parent"
         android:layout_height="match_parent"
@@ -17,7 +17,7 @@
             android:name="com.google.android.gms.maps.SupportMapFragment"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
-            tools:context=".activity.customer.MapsActivity" />
+            tools:context=".activity.customer.CustomerMapsActivity" />
 
         <Button
             android:id="@+id/left_menu_button"
@@ -114,6 +114,29 @@
                     />
             </com.google.android.material.card.MaterialCardView>
         </LinearLayout>
+
+        <ImageButton
+            android:id="@+id/here_btn"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:layout_marginTop="48dp"
+            android:layout_marginEnd="16dp"
+            map:layout_constraintEnd_toEndOf="parent"
+            map:layout_constraintTop_toTopOf="parent"
+            map:srcCompat="@drawable/ic_green_circle"
+            android:contentDescription="Current location"
+            android:background="@null" />
+
+        <ImageView
+            android:id="@+id/here_icon"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            map:layout_constraintBottom_toBottomOf="@+id/here_btn"
+            map:layout_constraintEnd_toEndOf="@+id/here_btn"
+            map:layout_constraintStart_toStartOf="@+id/here_btn"
+            map:layout_constraintTop_toTopOf="@+id/here_btn"
+            map:srcCompat="@drawable/ic_current_location" />
+
     </androidx.constraintlayout.widget.ConstraintLayout>
     <include
         layout="@layout/bottom_function_driver"/>

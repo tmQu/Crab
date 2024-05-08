@@ -67,6 +67,7 @@ import tkpm.com.crab.BuildConfig
 import tkpm.com.crab.MainActivity
 import tkpm.com.crab.R
 import tkpm.com.crab.activity.ChangeInfoActivity
+import tkpm.com.crab.activity.HistoryActivity
 import tkpm.com.crab.adapter.MapPredictionAdapter
 import tkpm.com.crab.adapter.TypeVehicleAdapter
 import tkpm.com.crab.api.APICallback
@@ -82,9 +83,18 @@ import tkpm.com.crab.objects.VehilceTypePriceResponse
 import java.net.URL
 import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
+import tkpm.com.crab.utils.DirectionRequest
 
 
-class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
+
+
+
+
+
+class CustomerMapsActivity : AppCompatActivity(), OnMapReadyCallback {
+    val REQUEST_CODE_PERMISSION = 1
+    val TAG = "MapsActivity"
+
     companion object {
         const val CHOOSE_LOCATION = 1
         const val CHOOSE_VEHICLE = 2
@@ -95,12 +105,6 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
         const val FINISH_TRIP = 7
     }
     private var tripStatus = -1
-
-
-    val REQUEST_CODE_PERMISSION = 1
-    val TAG = "MapsActivity"
-
-
     // map
     private lateinit var mMap: GoogleMap
 
@@ -140,6 +144,8 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
     private var destinationMarker: Marker? = null
     private var currentMarker: Marker? = null
     private var driverMarker: Marker? = null
+
+    private val polylines: MutableList<Polyline> = ArrayList()
 
     private var distance = 0L
     private var duration = 0L
@@ -251,7 +257,8 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
         leftUserMenu.isDraggable = true
 
 
-        bottomChooseVehicle.addBottomSheetCallback(object : BottomSheetBehavior.BottomSheetCallback() {
+        bottomChooseVehicle.addBottomSheetCallback(object :
+            BottomSheetBehavior.BottomSheetCallback() {
             override fun onStateChanged(bottomSheet: View, newState: Int) {
                 if(newState == BottomSheetBehavior.STATE_HIDDEN)
                 {
@@ -284,7 +291,7 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
         }
 
         // Set function to show the user information button
-        findViewById<Button>(R.id.left_menu_user_info).setOnClickListener{
+        findViewById<Button>(R.id.left_menu_user_info).setOnClickListener {
             val intent = Intent(this, ChangeInfoActivity::class.java)
             startActivity(intent)
         }
@@ -292,6 +299,11 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
         // Set function to show payment method button
         findViewById<Button>(R.id.left_menu_payment_method).setOnClickListener {
             val intent = Intent(this, PaymentMethodActivity::class.java)
+            startActivity(intent)
+        }
+
+        findViewById<Button>(R.id.left_menu_history).setOnClickListener {
+            val intent = Intent(this, HistoryActivity::class.java)
             startActivity(intent)
         }
 
@@ -308,25 +320,32 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
         }
 
         // Init result launcher
-        resultLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
-            if (result.resultCode == Activity.RESULT_OK) {
-                // Handle the returned result here
-                val data: Intent? = result.data
-                val paymentMethod = data?.getSerializableExtra("paymentMethod") as PaymentMethodSerializable
+        resultLauncher =
+            registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
+                if (result.resultCode == Activity.RESULT_OK) {
+                    // Handle the returned result here
+                    val data: Intent? = result.data
+                    val paymentMethod =
+                        data?.getSerializableExtra("paymentMethod") as PaymentMethodSerializable
 
-                // Change text and icon of payment method
-                if (paymentMethod.number == "") {
-                    findViewById<TextView>(R.id.bottom_type_vehicle_payment_name).text = "Tiền mặt"
-                    findViewById<ImageView>(R.id.bottom_type_vehicle_payment_icon).setImageResource(R.drawable.ic_cash)
-                    visaId = ""
-                } else
-                {
-                    findViewById<TextView>(R.id.bottom_type_vehicle_payment_name).text = "Visa*" + paymentMethod?.number?.takeLast(4)
-                    findViewById<ImageView>(R.id.bottom_type_vehicle_payment_icon).setImageResource(R.drawable.ic_visa)
-                    visaId = paymentMethod.id
+                    // Change text and icon of payment method
+                    if (paymentMethod.number == "") {
+                        findViewById<TextView>(R.id.bottom_type_vehicle_payment_name).text =
+                            "Tiền mặt"
+                        findViewById<ImageView>(R.id.bottom_type_vehicle_payment_icon).setImageResource(
+                            R.drawable.ic_cash
+                        )
+                        visaId = ""
+                    } else {
+                        findViewById<TextView>(R.id.bottom_type_vehicle_payment_name).text =
+                            "Visa*" + paymentMethod.number.takeLast(4)
+                        findViewById<ImageView>(R.id.bottom_type_vehicle_payment_icon).setImageResource(
+                            R.drawable.ic_visa
+                        )
+                        visaId = paymentMethod.id
+                    }
                 }
             }
-        }
 
         // Set function to choose payment method
         findViewById<LinearLayout>(R.id.bottom_type_vehicle_payment).setOnClickListener {
@@ -338,30 +357,37 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
     private fun createRequest() {
         val user = FirebaseAuth.getInstance().currentUser
         val phone = user?.phoneNumber ?: ""
+
+        if (currentMarker == null || destinationMarker == null || currentAddress.isEmpty() || destinationAddress.isEmpty() || vehicleType == null) {
+            Toast.makeText(this, "Do please, make your choices.", Toast.LENGTH_SHORT).show()
+            return
+        }
+
         val data = BookingRequest(
-            currentMarker?.position?.latitude ?: 0.0,
-            currentMarker?.position?.longitude ?: 0.0,
-            destinationMarker?.position?.latitude ?: 0.0,
-            destinationMarker?.position?.longitude ?: 0.0,
-            currentAddress ?: "",
-            destinationAddress ?: "",
+            currentMarker!!.position.latitude,
+            currentMarker!!.position.longitude,
+            destinationMarker!!.position.latitude,
+            destinationMarker!!.position.longitude,
+            currentAddress,
+            destinationAddress,
             CredentialService().getAll().name,
             phone,
             CredentialService().get(),
-            vehicleType?.typeVehicle ?: "",
-            vehicleType?.typeName ?: "",
-            vehicleType?.fee ?: 0,
-            visaId
+            vehicleType!!.typeVehicle,
+            vehicleType!!.typeName,
+            vehicleType!!.fee,
+            visaId,
+            distance,
+            duration
         )
 
         APIService().doPost<BookingRequest>("bookings", data, object : APICallback<Any> {
             override fun onSuccess(result: Any) {
-//                Toast.makeText(this@MapsActivity, "Success", Toast.LENGTH_SHORT).show()
-
             }
 
             override fun onError(t: Throwable) {
-                Toast.makeText(this@MapsActivity, "Error: ${t.message}", Toast.LENGTH_SHORT).show()
+                Toast.makeText(this@CustomerMapsActivity, "Error: ${t.message}", Toast.LENGTH_SHORT)
+                    .show()
             }
         })
 
@@ -425,7 +451,7 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
     }
 
 
-    class DirectionRequest(private val activity: MapsActivity, private val url: String) :
+    class DirectionRequest(private val activity: CustomerMapsActivity, private val url: String) :
         AsyncTask<Void?, Void?, String?>() {
         override fun doInBackground(vararg params: Void?): String? {
             val result: String
@@ -505,7 +531,6 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
 
     }
 
-
     fun showTheBottomLocation() {
         val timeTv = findViewById<TextView>(R.id.time)
         val distanceTv = findViewById<TextView>(R.id.distance)
@@ -513,11 +538,12 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
         val chooseBtn = findViewById<Button>(R.id.choose_location)
 
 
-        timeTv.text = "(${duration / 60})"
+        timeTv.text = "(${duration / 60} mins)"
         distanceTv.text = "${distance / 1000} km"
         adressTv.text = destinationAddress
 
         bottomChooseLocation.state = BottomSheetBehavior.STATE_EXPANDED
+        bottomChooseVehicle.state = BottomSheetBehavior.STATE_HIDDEN
         chooseBtn.setOnClickListener {
             tripStatus = CHOOSE_VEHICLE
             handleBottomSheet()
@@ -535,20 +561,27 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
             tripStatus = WAIT_DRIVER
             handleBottomSheet()
         }
-        val data = mapOf("distance" to distance/1000)
+        val data = mapOf("distance" to distance / 1000)
 
-        APIService().doPost<VehilceTypePriceResponse>("fee/get-fee", data, object : APICallback<Any> {
-            override fun onSuccess(result: Any) {
+        APIService().doPost<VehilceTypePriceResponse>(
+            "fee/get-fee",
+            data,
+            object : APICallback<Any> {
+                override fun onSuccess(result: Any) {
 
-                val data = (result as VehilceTypePriceResponse).fee
-                typeVehicleRv.adapter = TypeVehicleAdapter(data.toList()) {
-                    vehicleType = data[it]
+                    val data = (result as VehilceTypePriceResponse).fee
+                    typeVehicleRv.adapter = TypeVehicleAdapter(data.toList()) {
+                        vehicleType = data[it]
+                    }
+                    typeVehicleRv.layoutManager = LinearLayoutManager(
+                        this@CustomerMapsActivity,
+                        LinearLayoutManager.VERTICAL,
+                        false
+                    )
                 }
-                typeVehicleRv.layoutManager = LinearLayoutManager(this@MapsActivity, LinearLayoutManager.VERTICAL, false)
-            }
 
             override fun onError(t: Throwable) {
-                Toast.makeText(this@MapsActivity, "Error: ${t.message}", Toast.LENGTH_SHORT).show()
+                Toast.makeText(this@CustomerMapsActivity, "Error: ${t.message}", Toast.LENGTH_SHORT).show()
                 Log.i("MapsActivity", t.message.toString())
             }
         })
@@ -599,7 +632,7 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
             }
 
             override fun onError(t: Throwable) {
-                Toast.makeText(this@MapsActivity, "Error: ${t.message}", Toast.LENGTH_SHORT).show()
+                Toast.makeText(this@CustomerMapsActivity, "Error: ${t.message}", Toast.LENGTH_SHORT).show()
             }
         })
     }
@@ -634,7 +667,7 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
                 val driver = booking.driver
                 driverName.text = driver.name
                 driverPhone.text = driver.phone
-                Picasso.get().load(driver.avatar).into(driverAvatar)
+                Picasso.get().load(driver.avatar).placeholder(R.drawable.ic_user).into(driverAvatar)
 
                 getDirection(LatLng(booking.info.pickup.location.coordinates[1], booking.info.pickup.location.coordinates[0]), LatLng(booking.info.destination.location.coordinates[1], booking.info.destination.location.coordinates[0]))
                 clearMarkers()
@@ -658,7 +691,13 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
             }
 
             override fun onError(t: Throwable) {
-                Toast.makeText(this@MapsActivity, "Error: ${t.message}", Toast.LENGTH_SHORT).show()
+                Toast.makeText(
+                    this@CustomerMapsActivity,
+                    "Error: ${t.message}",
+                    Toast.LENGTH_SHORT
+                ).show()
+                Log.i("MapsActivity", t.message.toString())
+
             }
         })
     }
@@ -668,8 +707,8 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
 
 
     }
-    fun getDesAddress(result: String?)
-    {
+
+    fun getDesAddress(result: String?) {
         try {
             // Tranform the string into a json object
             val json = JSONObject(result!!)
@@ -735,11 +774,21 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
         val destination = destinationMarker?.position
         mMap.moveCamera(CameraUpdateFactory.newLatLngBounds(LatLngBounds.Builder().include(origin!!).include(destination!!).build(), 50))
 
+        clearLines()
+
         val url =
             "https://maps.googleapis.com/maps/api/directions/json?origin=${origin?.latitude},${origin?.longitude}&destination=${destination?.latitude},${destination?.longitude}&key=${BuildConfig.MAPS_API_KEY}&mode=driving"
 
-        val directionRequest = DirectionRequest(this, url)
-        directionRequest.execute()
+        val directionRequest = DirectionRequest(mMap, origin!!, destination!!, polylines)
+        val result = directionRequest.execute().get()
+
+        // get the distance and time
+        getDistance(result)
+        getTime(result)
+
+        getDesAddress(result)
+        showTheBottomLocation()
+        // drawPath(result)
 
     }
 
@@ -839,7 +888,8 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
     private fun setDestinationLocationMarker(latLng: LatLng) {
         destinationMarker?.remove()
         val markerOptions = MarkerOptions().position(latLng)
-            .icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_RED)).draggable(true)
+            .icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_RED))
+            .draggable(true)
         destinationMarker = mMap.addMarker(markerOptions)
     }
 
@@ -899,19 +949,18 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
                 this, Manifest.permission.ACCESS_COARSE_LOCATION
             ) != PackageManager.PERMISSION_GRANTED
         ) {
-
             return
         }
+
         mMap.isMyLocationEnabled = true
-        mMap.uiSettings.isMyLocationButtonEnabled = true
-        mMap.uiSettings.isZoomControlsEnabled = true
-        mMap.uiSettings.isCompassEnabled = true
+        mMap.uiSettings.isMyLocationButtonEnabled = false
+        mMap.uiSettings.isZoomControlsEnabled = false
+        mMap.uiSettings.isCompassEnabled = false
         setCurrentLocation()
 
         mMap.setOnMarkerClickListener(object : GoogleMap.OnMarkerClickListener {
             override fun onMarkerClick(p0: Marker): Boolean {
-                if(p0 == destinationMarker)
-                {
+                if (p0 == destinationMarker) {
                     bottomChooseLocation.state = BottomSheetBehavior.STATE_EXPANDED
                     return true
                 }
@@ -988,8 +1037,14 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
 
     private fun clearFocusAndHideKeyboard(searchBox: AutoCompleteTextView) {
         searchBox.clearFocus()
-        val imm = this?.getSystemService(Context.INPUT_METHOD_SERVICE) as? InputMethodManager
+        val imm = this.getSystemService(Context.INPUT_METHOD_SERVICE) as? InputMethodManager
         imm?.hideSoftInputFromWindow(searchBox.windowToken, 0)
     }
 
+    private fun clearLines() {
+        for (line in polylines) {
+            line.remove()
+        }
+        polylines.clear()
+    }
 }

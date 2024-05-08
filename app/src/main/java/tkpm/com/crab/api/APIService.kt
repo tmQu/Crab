@@ -23,7 +23,7 @@ class APIService {
             ) {
                 if (response.isSuccessful && response.body()!!.success) {
                     val data = response.body()?.data
-                    Log.i("API_SERVICE", "Data: $data")
+                    Log.i("API_SERVICE_GET", "Data: $data")
 
                     val gson = Gson()
                     val type = object : TypeToken<T>() {}.type
@@ -54,7 +54,7 @@ class APIService {
             ) {
                 if (response.isSuccessful && response.body()!!.success) {
                     val data = response.body()?.data
-                    Log.d("API_SERVICE", "Data: $data")
+                    Log.d("API_SERVICE_PATCH", "Data: $data")
                     val gson = Gson()
                     val type = object : TypeToken<T>() {}.type
                     val result = gson.fromJson(data, type) as Any
@@ -68,6 +68,7 @@ class APIService {
 
             override fun onFailure(call: Call<BaseResponse<JsonElement>>, t: Throwable) {
                 // Custom callback to process data
+                Log.i("API_SERVICE_PATCH", "Error: ${t.message}")
                 callback.onError(t)
             }
         })

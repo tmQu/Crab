@@ -6,7 +6,7 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     xmlns:app="http://schemas.android.com/apk/res-auto"
-    tools:context=".activity.customer.MapsActivity">
+    tools:context=".activity.customer.CustomerMapsActivity">
 
     <androidx.constraintlayout.widget.ConstraintLayout
         android:id="@+id/constraintLayout"
@@ -34,6 +34,12 @@
             app:endIconMode="clear_text"
             app:endIconTint="#989898"
             app:hintEnabled="false"
+            map:boxBackgroundColor="#f7fbf2"
+            map:boxBackgroundMode="filled"
+            map:boxCornerRadiusBottomEnd="8dp"
+            map:boxCornerRadiusBottomStart="8dp"
+            map:boxCornerRadiusTopEnd="8dp"
+            map:boxCornerRadiusTopStart="8dp"
             map:layout_constraintBottom_toBottomOf="@+id/left_menu_button"
             map:layout_constraintEnd_toEndOf="parent"
             map:layout_constraintStart_toEndOf="@+id/left_menu_button"
@@ -44,7 +50,6 @@
                 android:id="@+id/autocomplete_addr"
                 android:layout_width="match_parent"
                 android:layout_height="60dp"
-                android:background="@drawable/bg_search_box"
                 android:drawableStart="@drawable/ic_search"
                 android:drawablePadding="20dp"
                 android:hint="Search your address"
@@ -60,12 +65,15 @@
 
         <ImageButton
             android:id="@+id/here_btn"
-            android:layout_width="60dp"
-            android:layout_height="60dp"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
             android:layout_marginTop="16dp"
+            android:layout_marginEnd="16dp"
             android:background="@null"
             android:contentDescription="Current location"
             android:scaleType="fitXY"
+            android:src="@drawable/ic_green_circle"
+            map:layout_constraintEnd_toEndOf="parent"
             map:layout_constraintRight_toRightOf="@id/input_group"
             map:layout_constraintTop_toBottomOf="@id/input_group" />
 
@@ -83,6 +91,16 @@
             map:layout_constraintStart_toStartOf="parent"
             map:layout_constraintTop_toTopOf="@+id/map"
             android:contentDescription="Left menu" />
+
+        <ImageView
+            android:id="@+id/here_icon"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            map:layout_constraintBottom_toBottomOf="@+id/here_btn"
+            map:layout_constraintEnd_toEndOf="@+id/here_btn"
+            map:layout_constraintStart_toStartOf="@+id/here_btn"
+            map:layout_constraintTop_toTopOf="@+id/here_btn"
+            map:srcCompat="@drawable/ic_current_location" />
 
 
         <!--        <com.google.android.material.button.MaterialButton-->

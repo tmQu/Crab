@@ -32,7 +32,7 @@ class PaymentAdapter(
         parent: android.view.ViewGroup, viewType: Int
     ): PaymentAdapter.PaymentViewHolder {
         val itemView = android.view.LayoutInflater.from(parent.context).inflate(
-            R.layout.item_payment_method,
+            R.layout.item_payment_method_layout,
             parent,
             false
         )
@@ -45,7 +45,7 @@ class PaymentAdapter(
         // Number == "" -> Cash
         if (currentItem.number == "") {
             holder.paymentNumber.text = ""
-            holder.paymentName.text = "Tền mặt"
+            holder.paymentName.text = "Tiền mặt"
             holder.paymentIcon.setImageResource(R.drawable.ic_cash)
         } else
         {
@@ -83,7 +83,7 @@ class PaymentMethodActivity : AppCompatActivity() {
             override fun onSuccess(data: Any) {
                 data as PaymentMethodResponse
 
-                Log.d("API_SERVICE", "Success: ${data.toString()}")
+                Log.d("API_SERVICE", "Success: $data")
             }
 
             override fun onError(error: Throwable) {
@@ -115,7 +115,7 @@ class PaymentMethodActivity : AppCompatActivity() {
                 paymentRecyclerView.adapter = paymentAdapter
                 paymentRecyclerView.layoutManager = androidx.recyclerview.widget.LinearLayoutManager(this@PaymentMethodActivity)
 
-                Log.d("API_SERVICE", "Success: ${data.data.toString()}")
+                Log.d("API_SERVICE", "Success: ${data.data}")
             }
 
             override fun onError(error: Throwable) {

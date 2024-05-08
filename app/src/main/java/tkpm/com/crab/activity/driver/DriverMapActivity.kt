@@ -1,23 +1,21 @@
 package tkpm.com.crab.activity.driver
 
 import android.Manifest
-import android.app.AlertDialog
-import android.content.DialogInterface
+import android.app.Activity
 import android.content.Intent
 import android.content.pm.PackageManager
-import android.graphics.Color
 import android.net.Uri
-import android.os.AsyncTask
 import android.os.Bundle
-import android.os.Handler
 import android.os.Looper
 import android.util.Log
 import android.view.View
 import android.widget.Button
+import android.widget.ImageButton
 import android.widget.LinearLayout
 import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.enableEdgeToEdge
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.constraintlayout.widget.ConstraintLayout
 import androidx.core.app.ActivityCompat
@@ -33,37 +31,38 @@ import com.google.android.gms.maps.CameraUpdateFactory
 import com.google.android.gms.maps.GoogleMap
 import com.google.android.gms.maps.OnMapReadyCallback
 import com.google.android.gms.maps.SupportMapFragment
+import com.google.android.gms.maps.model.BitmapDescriptorFactory
 import com.google.android.gms.maps.model.LatLng
 import com.google.android.gms.maps.model.LatLngBounds
 import com.google.android.gms.maps.model.Marker
 import com.google.android.gms.maps.model.MarkerOptions
 import com.google.android.gms.maps.model.Polyline
-import com.google.android.gms.maps.model.PolylineOptions
 import com.google.android.libraries.places.api.net.PlacesClient
 import com.google.android.material.bottomsheet.BottomSheetBehavior
 import com.google.android.material.sidesheet.SideSheetBehavior
 import com.google.firebase.auth.FirebaseAuth
 import com.google.gson.Gson
+import com.google.gson.JsonObject
 import com.google.gson.annotations.SerializedName
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.Response
 import okhttp3.WebSocketListener
 import okio.ByteString
-import org.json.JSONException
 import org.json.JSONObject
 import tkpm.com.crab.BuildConfig
 import tkpm.com.crab.MainActivity
 import tkpm.com.crab.R
 import tkpm.com.crab.activity.ChangeInfoActivity
+import tkpm.com.crab.activity.HistoryActivity
 import tkpm.com.crab.api.APICallback
 import tkpm.com.crab.api.APIService
 import tkpm.com.crab.credential_service.CredentialService
 import tkpm.com.crab.databinding.ActivityDriverMapsBinding
 import tkpm.com.crab.objects.Booking
-import tkpm.com.crab.objects.VehicleValidation
+import tkpm.com.crab.objects.Vehicle
+import tkpm.com.crab.utils.DirectionRequest
 import tkpm.com.crab.utils.PriceDisplay
-import java.net.URL
 
 
 
@@ -88,7 +87,7 @@ class DriverMapActivity : AppCompatActivity(), OnMapReadyCallback {
 
     private lateinit var currentLocation: LatLng
 
-    private var currentLocationMarker: Marker? = null
+//    private var currentLocationMarker: Marker? = null
     private var destinationMarker: Marker? = null
     private var pickupMarker: Marker? = null
 
@@ -98,15 +97,50 @@ class DriverMapActivity : AppCompatActivity(), OnMapReadyCallback {
     private val requests: MutableList<Booking> = ArrayList()
     private var currentBooking: Booking? = null
     private lateinit var requestRecyclerView: RecyclerView
-//    private lateinit var requestAdapter: RequestAdapter
+    private lateinit var vehicleType: String
 
 
     private val polylines: MutableList<Polyline> = ArrayList()
 
     private lateinit var webSocket: WebSocket
 
-    private fun setIncomeBooking(booking: Booking)
-    {
+    private val startCompleteOrderForResult = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
+        if (result.resultCode == Activity.RESULT_OK) {
+            // Handle the returned result
+            // Close all fragments and back to default fragment to wait for new booking
+            driverStatus = ONLINE
+            webSocket.connectWebSocket(BuildConfig.BASE_URL_WS)
+            webSocket.driverOnline()
+            webSocket.updateVehicle(vehicleType)
+            webSocket.updateLocation(
+                currentLocation.latitude, currentLocation.longitude
+            )
+            handleDriverStatus()
+            clearLines()
+            clearMarkers()
+
+            // Clear the current booking
+            currentBooking = null
+        }
+
+        if (result.resultCode == Activity.RESULT_CANCELED) {
+            // Handle the cancelled result
+            // Close all fragments, back to default fragment and set the driver status to offline
+            driverStatus = OFFLINE
+            webSocket.driverOffline()
+            webSocket.closeWebSocket()
+            handleDriverStatus()
+
+            // Clear the current booking
+            currentBooking = null
+
+            // Clear the map
+            clearLines()
+            clearMarkers()
+        }
+    }
+
+    private fun setIncomeBooking(booking: Booking) {
         driverStatus = BUSY
         handleDriverStatus()
         val serviceName = findViewById<TextView>(R.id.service_name)
@@ -124,7 +158,15 @@ class DriverMapActivity : AppCompatActivity(), OnMapReadyCallback {
         customerName.text = booking.info.name
         serviceName.text = booking.service
         address.text = booking.info.destination.address
-        getDirection(LatLng(booking.info.pickup.location.coordinates[1], booking.info.pickup.location.coordinates[0]), LatLng(booking.info.destination.location.coordinates[1], booking.info.destination.location.coordinates[0]), true)
+        getDirection(
+            LatLng(
+                booking.info.pickup.location.coordinates[1],
+                booking.info.pickup.location.coordinates[0]
+            ), LatLng(
+                booking.info.destination.location.coordinates[1],
+                booking.info.destination.location.coordinates[0]
+            ), true
+        )
         clearMarkers()
         pickupMarker = mMap.addMarker(
             MarkerOptions().position(
@@ -132,7 +174,7 @@ class DriverMapActivity : AppCompatActivity(), OnMapReadyCallback {
                     booking.info.pickup.location.coordinates[1],
                     booking.info.pickup.location.coordinates[0]
                 )
-            ).title("Pickup Location")
+            ).title("Pickup Location").icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_AZURE))
         )
         destinationMarker = mMap.addMarker(
             MarkerOptions().position(
@@ -146,7 +188,12 @@ class DriverMapActivity : AppCompatActivity(), OnMapReadyCallback {
             webSocket.acceptBooking(booking.id)
             startBtnGroup.visibility = View.GONE
             btnStep.visibility = View.VISIBLE
-            getDirection(LatLng(currentLocation.latitude, currentLocation.longitude), LatLng(booking.info.pickup.location.coordinates[1], booking.info.pickup.location.coordinates[0]), true)
+            getDirection(
+                LatLng(currentLocation.latitude, currentLocation.longitude), LatLng(
+                    booking.info.pickup.location.coordinates[1],
+                    booking.info.pickup.location.coordinates[0]
+                ), true
+            )
             clearMarkers()
             pickupMarker = mMap.addMarker(
                 MarkerOptions().position(
@@ -154,11 +201,11 @@ class DriverMapActivity : AppCompatActivity(), OnMapReadyCallback {
                         booking.info.pickup.location.coordinates[1],
                         booking.info.pickup.location.coordinates[0]
                     )
-                ).title("Pickup Location")
+                ).title("Pickup Location").icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_AZURE))
             )
-            currentLocationMarker = mMap.addMarker(
-                MarkerOptions().position(currentLocation).title("Current Location")
-            )
+//            currentLocationMarker = mMap.addMarker(
+//                MarkerOptions().position(currentLocation).title("Current Location")
+//            )
 
             updateBookingStatusWithLatLng(booking.id, "accepted", currentLocation.latitude, currentLocation.longitude)
         }
@@ -181,7 +228,15 @@ class DriverMapActivity : AppCompatActivity(), OnMapReadyCallback {
                 btnStep.text = "Đã đón"
             }
             if(btnStep.text == "Đã đón") {
-                getDirection(LatLng(booking.info.pickup.location.coordinates[1], booking.info.pickup.location.coordinates[0]), LatLng(booking.info.destination.location.coordinates[1], booking.info.destination.location.coordinates[0]), true)
+                getDirection(
+                    LatLng(
+                        booking.info.pickup.location.coordinates[1],
+                        booking.info.pickup.location.coordinates[0]
+                    ), LatLng(
+                        booking.info.destination.location.coordinates[1],
+                        booking.info.destination.location.coordinates[0]
+                    ), true
+                )
                 clearMarkers()
                 pickupMarker = mMap.addMarker(
                     MarkerOptions().position(
@@ -189,7 +244,7 @@ class DriverMapActivity : AppCompatActivity(), OnMapReadyCallback {
                             booking.info.pickup.location.coordinates[1],
                             booking.info.pickup.location.coordinates[0]
                         )
-                    ).title("Pickup Location")
+                    ).title("Pickup Location").icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_AZURE))
                 )
 
                 destinationMarker = mMap.addMarker(
@@ -202,48 +257,62 @@ class DriverMapActivity : AppCompatActivity(), OnMapReadyCallback {
                 )
                 updateBookingStatus(booking.id, "pick-up")
                 btnStep.text = "Đã trả"
-            } else if(btnStep.text == "Đã trả") {
+            } else if (btnStep.text == "Đã trả") {
                 updateBookingStatus(booking.id, "completed")
+
+                // Open complete order activity
+                val intent = Intent(this, CompleteOrderActivity::class.java)
+                startCompleteOrderForResult.launch(intent)
+
+                // Change to default status
+                btnStep.text = "Đã đón"
+                startBtnGroup.visibility = View.VISIBLE
             }
         }
         phoneBtn.setOnClickListener {
-            val intent = Intent(Intent.ACTION_DIAL, Uri.parse("tel:" + booking.info.phone));
-            startActivity(intent);
+            val intent = Intent(Intent.ACTION_DIAL, Uri.parse("tel:" + booking.info.phone))
+            startActivity(intent)
         }
     }
 
     private fun updateBookingStatusWithLatLng(bookingId: String, status: String, lat: Double = 0.0, lng: Double = 0.0) {
         val driverId = CredentialService().getAll().id
-        val obj = JSONObject()
-        obj.put("id", bookingId)
-        obj.put("status", status)
-        obj.put("driver", driverId)
-        obj.put("driverLat", lat)
-        obj.put("driverLng", lng)
+        val obj = JsonObject()
+        obj.addProperty("id", bookingId)
+        obj.addProperty("status", status)
+        obj.addProperty("driver", driverId)
+        obj.addProperty("driverLat", lat)
+        obj.addProperty("driverLng", lng)
         APIService().doPatch<Any>("bookings", obj, object : APICallback<Any> {
             override fun onSuccess(data: Any) {
 
             }
 
             override fun onError(error: Throwable) {
-                Toast.makeText(this@DriverMapActivity, "Error updating booking", Toast.LENGTH_SHORT).show()
-                Log.i("DriverMapActivity", "${error.message}")
+//                Toast.makeText(this@DriverMapActivity, "Error updating booking", Toast.LENGTH_SHORT).show()
+//                Log.i("DriverMapActivity", "${error.message}")
             }
         })
     }
 
     private fun updateBookingStatus(bookingId: String, status: String) {
         val driverId = CredentialService().getAll().id
-        APIService().doPatch<Any>("bookings", mapOf("id" to bookingId, "status" to status, "driver" to driverId), object : APICallback<Any> {
-            override fun onSuccess(data: Any) {
+        APIService().doPatch<Any>("bookings",
+            mapOf("id" to bookingId, "status" to status, "driver" to driverId),
+            object : APICallback<Any> {
+                override fun onSuccess(data: Any) {
 
-            }
+                }
 
-            override fun onError(error: Throwable) {
-                Toast.makeText(this@DriverMapActivity, "Error updating booking", Toast.LENGTH_SHORT).show()
-                Log.i("DriverMapActivity", "${error.message}")
-            }
-        })
+                override fun onError(error: Throwable) {
+                    Toast.makeText(
+                        this@DriverMapActivity,
+                        "Không thể cập nhật thông tin đơn hàng",
+                        Toast.LENGTH_SHORT
+                    ).show()
+                    Log.i("DriverMapActivity", "${error.message}")
+                }
+            })
     }
 
     fun getBookingById(id: String) {
@@ -257,7 +326,7 @@ class DriverMapActivity : AppCompatActivity(), OnMapReadyCallback {
             override fun onError(error: Throwable) {
                 Toast.makeText(
                     this@DriverMapActivity,
-                    "Error fetching booking",
+                    "Không thể lấy thông tin đơn hàng",
                     Toast.LENGTH_SHORT
                 ).show()
                 Log.i("DriverMapActivity", "${error.message}")
@@ -265,23 +334,16 @@ class DriverMapActivity : AppCompatActivity(), OnMapReadyCallback {
         })
     }
 
-    private fun handleDriverStatus()
-    {
-        if (driverStatus == ONLINE)
-        {
+    private fun handleDriverStatus() {
+        if (driverStatus == ONLINE) {
             bottomDisconnect.visibility = View.VISIBLE
             bottomConnect.visibility = View.GONE
             bottomFunctionDriver.state = BottomSheetBehavior.STATE_HIDDEN
-        }
-        else if (
-            driverStatus == OFFLINE)
-        {
+        } else if (driverStatus == OFFLINE) {
             bottomDisconnect.visibility = View.GONE
             bottomConnect.visibility = View.VISIBLE
             bottomFunctionDriver.state = BottomSheetBehavior.STATE_HIDDEN
-        }
-        else if (driverStatus == BUSY)
-        {
+        } else if (driverStatus == BUSY) {
             bottomDisconnect.visibility = View.GONE
             bottomConnect.visibility = View.GONE
             bottomFunctionDriver.state = BottomSheetBehavior.STATE_EXPANDED
@@ -293,7 +355,9 @@ class DriverMapActivity : AppCompatActivity(), OnMapReadyCallback {
         enableEdgeToEdge()
         setContentView(R.layout.activity_driver_maps)
 
-        // Obtain the SupportMapFragment and get notified when the map is ready to be used.
+        checkLocationPermission()
+
+        // // Obtain the SupportMapFragment and get notified when the map is ready to be used.
         val mapFragment = supportFragmentManager.findFragmentById(R.id.map) as SupportMapFragment
         mapFragment.getMapAsync(this)
 
@@ -305,37 +369,60 @@ class DriverMapActivity : AppCompatActivity(), OnMapReadyCallback {
         bottomConnect = findViewById(R.id.connection_bottom)
         bottomDisconnect = findViewById(R.id.disconnect_bottom)
 
-        checkLocationPermission()
         webSocket = WebSocket(this)
-
 
         driverStatus = OFFLINE
         handleDriverStatus()
 
         findViewById<Button>(R.id.connection_btn).setOnClickListener {
-            APIService().doGet<VehicleValidation>("accounts/${CredentialService().get()}/vehicles/validation", object : APICallback<Any> {
-                override fun onSuccess(data: Any) {
-                    data as VehicleValidation
-                    val isVehicleAvailable = data.data
+            // Check if there is no current location -> Do not allow to connect
+            if (!::currentLocation.isInitialized) {
+                Toast.makeText(
+                    this@DriverMapActivity,
+                    "Không thể kết nối khi chưa bật vị trí",
+                    Toast.LENGTH_SHORT
+                ).show()
+                return@setOnClickListener
+            }
 
-                    if (!isVehicleAvailable) {
-                        Toast.makeText(this@DriverMapActivity, "Please update vehicle information", Toast.LENGTH_SHORT).show()
-                        return
+            APIService().doGet<Vehicle>("accounts/${CredentialService().get()}/vehicles",
+                object : APICallback<Any> {
+                    override fun onSuccess(data: Any) {
+                        data as Vehicle
+                        val isVehicleAvailable = (data.type != "")
+
+                        if (!isVehicleAvailable) {
+                            Toast.makeText(
+                                this@DriverMapActivity,
+                                "Hãy cập nhật thông tin phương tiện để nhận cuốc",
+                                Toast.LENGTH_SHORT
+                            ).show()
+                            return
+                        }
+
+                        // Update vehicle type
+                        vehicleType = data.type
+
+                        // Update driver status
+                        driverStatus = ONLINE
+                        webSocket.connectWebSocket(BuildConfig.BASE_URL_WS)
+                        webSocket.driverOnline()
+                        webSocket.updateVehicle(vehicleType)
+                        webSocket.updateLocation(
+                            currentLocation.latitude, currentLocation.longitude
+                        )
+                        handleDriverStatus()
                     }
 
-                    // Update driver status
-                    driverStatus = ONLINE
-                    webSocket.connectWebSocket(BuildConfig.BASE_URL_WS)
-                    webSocket.driverOnline()
-                    webSocket.updateLocation(currentLocation.latitude, currentLocation.longitude)
-                    handleDriverStatus()
-                }
-
-                override fun onError(error: Throwable) {
-                    Log.i("DriverMapActivity", "Error fetching account")
-                    Toast.makeText(this@DriverMapActivity, "Error fetching account", Toast.LENGTH_SHORT).show()
-                }
-            })
+                    override fun onError(error: Throwable) {
+                        Log.i("DriverMapActivity", "Error fetching account")
+                        Toast.makeText(
+                            this@DriverMapActivity,
+                            "Lấy thông tin tài khoản thất bại",
+                            Toast.LENGTH_SHORT
+                        ).show()
+                    }
+                })
         }
 
         findViewById<Button>(R.id.disconnect_btn).setOnClickListener {
@@ -348,19 +435,31 @@ class DriverMapActivity : AppCompatActivity(), OnMapReadyCallback {
         }
 
         // Show left menu
-        findViewById<Button>(R.id.left_menu_button).setOnClickListener{
-            SideSheetBehavior.from(findViewById(R.id.left_driver_menu)).state = SideSheetBehavior.STATE_EXPANDED
+        findViewById<Button>(R.id.left_menu_button).setOnClickListener {
+            SideSheetBehavior.from(findViewById(R.id.left_driver_menu)).state =
+                SideSheetBehavior.STATE_EXPANDED
         }
 
         // Set function to show the user information button
-        findViewById<Button>(R.id.left_menu_user_info).setOnClickListener{
+        findViewById<Button>(R.id.left_menu_user_info).setOnClickListener {
             val intent = Intent(this, ChangeInfoActivity::class.java)
             startActivity(intent)
         }
 
         // Set function to show the vehicle information button
-        findViewById<Button>(R.id.left_menu_vehicle_info).setOnClickListener{
+        findViewById<Button>(R.id.left_menu_vehicle_info).setOnClickListener {
             val intent = Intent(this, ChangeVehicleInfo::class.java)
+            startActivity(intent)
+        }
+
+        // Set function to show driver income
+        findViewById<Button>(R.id.left_menu_income).setOnClickListener {
+            val intent = Intent(this, DriverIncomeActivity::class.java)
+            startActivity(intent)
+        }
+
+        findViewById<Button>(R.id.left_menu_history).setOnClickListener {
+            val intent = Intent(this, HistoryActivity::class.java)
             startActivity(intent)
         }
 
@@ -375,6 +474,27 @@ class DriverMapActivity : AppCompatActivity(), OnMapReadyCallback {
             startActivity(intent)
             finish()
         }
+
+        // Set function for here button
+        findViewById<ImageButton>(R.id.here_btn).setOnClickListener{
+            // Zoom in current location if available
+            locationProviderClient = LocationServices.getFusedLocationProviderClient(this)
+
+            try {
+                val locationRequest = locationProviderClient.lastLocation
+                locationRequest.addOnCompleteListener {
+                    if (it.isSuccessful) {
+                        val location = it.result
+                        if (location != null) {
+                            val latLng = LatLng(location.latitude, location.longitude)
+                            mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(latLng, 15f))
+                        }
+                    }
+                }
+            } catch (error: SecurityException) {
+                Log.e("SET_CURRENT_LOCATION", "Error getting device location: ${error.message}")
+            }
+        }
     }
 
 
@@ -384,7 +504,10 @@ class DriverMapActivity : AppCompatActivity(), OnMapReadyCallback {
             currentLocation = LatLng(
                 locationResult.lastLocation!!.latitude, locationResult.lastLocation!!.longitude
             )
-            currentLocationMarker?.position = currentLocation
+            Log.i("SHIT!", "callback")
+
+//            currentLocationMarker?.position = currentLocation
+            // webSocket.updateLocation(currentLocation.latitude, currentLocation.longitude)
 
         }
     }
@@ -403,12 +526,26 @@ class DriverMapActivity : AppCompatActivity(), OnMapReadyCallback {
     override fun onMapReady(googleMap: GoogleMap) {
         mMap = googleMap
 
-        mMap.isMyLocationEnabled = true
-        mMap.uiSettings.isMyLocationButtonEnabled = true
-        mMap.uiSettings.isZoomControlsEnabled = true
-        mMap.uiSettings.isCompassEnabled = true
+        // Disable zoom controls
+        mMap.uiSettings.isZoomControlsEnabled = false
 
-        checkLocationPermission()
+        // Disable my location button
+        mMap.uiSettings.isMyLocationButtonEnabled = false
+
+        if (ActivityCompat.checkSelfPermission(
+                this, Manifest.permission.ACCESS_FINE_LOCATION
+            ) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(
+                this, Manifest.permission.ACCESS_COARSE_LOCATION
+            ) != PackageManager.PERMISSION_GRANTED
+        ) {
+            return
+        }
+
+        mMap.isMyLocationEnabled = true
+        mMap.uiSettings.isMyLocationButtonEnabled = false
+        mMap.uiSettings.isZoomControlsEnabled = false
+        mMap.uiSettings.isCompassEnabled = false
+
         locationProviderClient = LocationServices.getFusedLocationProviderClient(this)
 
         locationRequest = LocationRequest.create().apply {
@@ -422,17 +559,20 @@ class DriverMapActivity : AppCompatActivity(), OnMapReadyCallback {
         ).continueWith {
             val lastLocation = locationProviderClient.lastLocation
             lastLocation.addOnSuccessListener {
-                currentLocation = LatLng(it.latitude, it.longitude)
-                currentLocationMarker = mMap.addMarker(
-                    MarkerOptions().position(currentLocation).title("Current Location")
-                )
-                webSocket.updateLocation(currentLocation.latitude, currentLocation.longitude)
-                centreCameraOnLocation(currentLocation)
+                lastLocation.addOnSuccessListener {
+                    if (it != null) {
+                        currentLocation = LatLng(it.latitude, it.longitude)
+//                        currentLocationMarker = mMap.addMarker(
+//                            MarkerOptions().position(currentLocation).title("Current Location")
+//                        )
+                        webSocket.updateLocation(currentLocation.latitude, currentLocation.longitude)
+                        centreCameraOnLocation(currentLocation)
+                    }
+                }
             }
         }
 
     }
-
 
 
     override fun onRequestPermissionsResult(
@@ -451,47 +591,28 @@ class DriverMapActivity : AppCompatActivity(), OnMapReadyCallback {
     private fun checkLocationPermission() {
         if (ContextCompat.checkSelfPermission(
                 this, Manifest.permission.ACCESS_FINE_LOCATION
-            ) != PackageManager.PERMISSION_GRANTED && ContextCompat.checkSelfPermission(
+            ) == PackageManager.PERMISSION_GRANTED && ContextCompat.checkSelfPermission(
                 this, Manifest.permission.ACCESS_COARSE_LOCATION
-            ) != PackageManager.PERMISSION_GRANTED
+            ) == PackageManager.PERMISSION_GRANTED
         ) {
-            if (ActivityCompat.shouldShowRequestPermissionRationale(
-                    this, Manifest.permission.ACCESS_FINE_LOCATION
-                ) && ActivityCompat.shouldShowRequestPermissionRationale(
-                    this, Manifest.permission.ACCESS_COARSE_LOCATION
-                )
-            ) {
-                AlertDialog.Builder(this).setTitle("give permission")
-                    .setMessage("give permission message").setPositiveButton(
-                        "OK"
-                    ) { dialogInterface: DialogInterface?, i: Int ->
-                        ActivityCompat.requestPermissions(
-                            this@DriverMapActivity, arrayOf(
-                                Manifest.permission.ACCESS_FINE_LOCATION,
-                                Manifest.permission.ACCESS_COARSE_LOCATION
-                            ), 1
-                        )
-                    }.create().show()
-            } else {
-                ActivityCompat.requestPermissions(
-                    this@DriverMapActivity, arrayOf(
-                        Manifest.permission.ACCESS_FINE_LOCATION,
-                        Manifest.permission.ACCESS_COARSE_LOCATION,
-                        Manifest.permission.CALL_PHONE
-                    ), 1
-                )
-            }
+
+        } else {
+            requestPermissions(
+                arrayOf(
+                    Manifest.permission.ACCESS_FINE_LOCATION,
+                    Manifest.permission.ACCESS_COARSE_LOCATION
+                ), 1
+            )
         }
-
-
     }
+
 
     private fun centreCameraOnLocation(location: LatLng, zoom: Float = 15f) {
         mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(location, zoom))
     }
 
     private fun clearMarkers() {
-        currentLocationMarker?.remove()
+//        currentLocationMarker?.remove()
         destinationMarker?.remove()
         pickupMarker?.remove()
     }
@@ -503,111 +624,34 @@ class DriverMapActivity : AppCompatActivity(), OnMapReadyCallback {
         polylines.clear()
     }
 
-    private fun drawPath(result: String?) {
-        try {
-            // Tranform the string into a json object
-            val json = JSONObject(result!!)
-            val routeArray = json.getJSONArray("routes")
-            val routes = routeArray.getJSONObject(0)
-            val overviewPolylines = routes.getJSONObject("overview_polyline")
-            val encodedString = overviewPolylines.getString("points")
-            val list = decodePoly(encodedString)
-            // clearLines()
-            val line = mMap.addPolyline(
-                PolylineOptions().addAll(list).width(12f)
-                    .color(Color.parseColor("#05b1fb")) // Google maps blue color
-                    .geodesic(true)
-            )
-            polylines.add(line)
-        } catch (e: JSONException) {
-        }
-    }
-
-    private fun decodePoly(encoded: String): List<LatLng> {
-        val poly: MutableList<LatLng> = ArrayList()
-        var index = 0
-        val len = encoded.length
-        var lat = 0
-        var lng = 0
-        while (index < len) {
-            var b: Int
-            var shift = 0
-            var result = 0
-            do {
-                b = encoded[index++].code - 63
-                result = result or (b and 0x1f shl shift)
-                shift += 5
-            } while (b >= 0x20)
-            val dlat = if (result and 1 != 0) (result shr 1).inv() else result shr 1
-            lat += dlat
-            shift = 0
-            result = 0
-            do {
-                b = encoded[index++].code - 63
-                result = result or (b and 0x1f shl shift)
-                shift += 5
-            } while (b >= 0x20)
-            val dlng = if (result and 1 != 0) (result shr 1).inv() else result shr 1
-            lng += dlng
-            val p = LatLng(
-                lat.toDouble() / 1E5, lng.toDouble() / 1E5
-            )
-            poly.add(p)
-        }
-        return poly
-    }
-
-    class DirectionRequest(private val activity: DriverMapActivity, private val url: String) :
-        AsyncTask<Void?, Void?, String?>() {
-        override fun doInBackground(vararg params: Void?): String? {
-            val result: String
-            val handler = Handler(Looper.getMainLooper())
-            try {
-                val data = url.let { URL(it).readText() }
-                result = data
-            } catch (e: Exception) {
-                handler.post {
-                    Toast.makeText(activity, "Error: ${e.message}", Toast.LENGTH_SHORT).show()
-                }
-                return null
-            }
-            return result
-        }
-
-        override fun onPostExecute(result: String?) {
-            super.onPostExecute(result)
-            activity.drawPath(result)
-        }
-    }
-
     fun getDirection(origin: LatLng?, destination: LatLng?, clear: Boolean = false) {
         if (clear) {
             clearLines()
         }
 //        centreCameraOnLocation(origin!!)
-        mMap.moveCamera(CameraUpdateFactory.newLatLngBounds(LatLngBounds.Builder().include(origin!!).include(destination!!).build(), 50))
-        val url =
-            "https://maps.googleapis.com/maps/api/directions/json?origin=${origin?.latitude},${origin?.longitude}&destination=${destination?.latitude},${destination?.longitude}&key=${BuildConfig.MAPS_API_KEY}&mode=driving"
+        mMap.moveCamera(
+            CameraUpdateFactory.newLatLngBounds(
+                LatLngBounds.Builder().include(origin!!).include(destination!!).build(), 50
+            )
+        )
+        // val url =
+        //     "https://maps.googleapis.com/maps/api/directions/json?origin=${origin?.latitude},${origin?.longitude}&destination=${destination?.latitude},${destination?.longitude}&key=${BuildConfig.MAPS_API_KEY}&mode=driving"
 
-        val directionRequest = DirectionRequest(this, url)
+        val directionRequest = DirectionRequest(mMap, origin, destination, polylines)
         directionRequest.execute()
     }
 
-    internal class WebSocket (activity: DriverMapActivity){
+    internal class WebSocket(activity: DriverMapActivity) {
         internal class BookingSocket(
-            val bookingId: String,
-            val response: String
+            val bookingId: String, val response: String
         )
 
         internal class BookingRequest(
-            val event: String,
-            val bookingId: String
+            val event: String, val bookingId: String
         )
 
         internal class BookingResponse(
-            val event: String,
-            val role: String,
-            val booking: BookingSocket
+            val event: String, val role: String, val booking: BookingSocket
         )
 
         private var webSocket: okhttp3.WebSocket? = null
@@ -625,8 +669,7 @@ class DriverMapActivity : AppCompatActivity(), OnMapReadyCallback {
                 val gson = Gson()
                 val bookingRequest = gson.fromJson(text, BookingRequest::class.java)
                 Log.d(
-                    TAG,
-                    "Event: ${bookingRequest.event}, Booking ID: ${bookingRequest.bookingId}"
+                    TAG, "Event: ${bookingRequest.event}, Booking ID: ${bookingRequest.bookingId}"
                 )
                 if (bookingRequest.event == "newBooking") {
                     // Handle new booking request
@@ -655,9 +698,7 @@ class DriverMapActivity : AppCompatActivity(), OnMapReadyCallback {
             }
 
             override fun onFailure(
-                webSocket: okhttp3.WebSocket,
-                t: Throwable,
-                response: Response?
+                webSocket: okhttp3.WebSocket, t: Throwable, response: Response?
             ) {
                 Log.e(TAG, "Error: " + t.message)
                 // Handle errors
@@ -667,15 +708,12 @@ class DriverMapActivity : AppCompatActivity(), OnMapReadyCallback {
         // Connect to WebSocket server
         fun connectWebSocket(serverUrl: String) {
             val client = OkHttpClient()
-            val request: Request = Request.Builder()
-                .url(serverUrl)
-                .build()
+            val request: Request = Request.Builder().url(serverUrl).build()
             webSocket = client.newWebSocket(request, webSocketListener)
         }
 
         internal class DriverStatus(
-            val event: String,
-            val role: String
+            val event: String, val role: String
         )
 
         fun driverOnline() {
@@ -690,11 +728,19 @@ class DriverMapActivity : AppCompatActivity(), OnMapReadyCallback {
             sendMessage(message)
         }
 
-        internal class LocationUpdate(
+        internal class VehicleType(
             val event: String,
-            val role: String,
-            val lat: Double,
-            val lng: Double
+            val vehicle: String
+        )
+
+        fun updateVehicle(vehicleType: String) {
+            val gson = Gson()
+            val message = gson.toJson(VehicleType("updateVehicle", vehicleType))
+            sendMessage(message)
+        }
+
+        internal class LocationUpdate(
+            val event: String, val role: String, val lat: Double, val lng: Double
         )
 
         fun updateLocation(lat: Double, lng: Double) {

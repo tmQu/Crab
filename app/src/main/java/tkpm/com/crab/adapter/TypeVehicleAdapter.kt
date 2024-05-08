@@ -39,7 +39,8 @@ class TypeVehicleAdapter(val listVehicle: List<VehicleTypePrice>, val onItemClic
     }
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder {
-        val view = LayoutInflater.from(parent.context).inflate(R.layout.type_vehicle_row, parent, false)
+        val view = LayoutInflater.from(parent.context)
+            .inflate(R.layout.item_vehicle_type_row_layout, parent, false)
         return ViewHolder(view)
     }
 
@@ -70,11 +71,11 @@ class TypeVehicleAdapter(val listVehicle: List<VehicleTypePrice>, val onItemClic
         }
         if(selectedList[position])
         {
-            holder.itemView.setBackgroundColor(Color.parseColor("#F0F9F8"))
+            holder.itemView.setBackgroundColor(Color.parseColor("#FFE6E6E6"))
         }
         else
         {
-            holder.itemView.setBackgroundColor(Color.parseColor("#FFFFFF"))
+            holder.itemView.setBackgroundColor(Color.parseColor("#00FFFFFF"))
 
         }
     }

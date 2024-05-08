@@ -73,7 +73,7 @@ class ChangeInfoActivity : AppCompatActivity() {
         // Set avatar click listener
         avatar.setOnClickListener {
             val intent = Intent(Intent.ACTION_PICK, MediaStore.Images.Media.EXTERNAL_CONTENT_URI)
-            startActivityForResult(intent, this.REQUEST_CODE);
+            startActivityForResult(intent, this.REQUEST_CODE)
         }
 
         // Set phone
@@ -195,7 +195,7 @@ class ChangeInfoActivity : AppCompatActivity() {
     }
 
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
-        super.onActivityResult(requestCode, resultCode, data);
+        super.onActivityResult(requestCode, resultCode, data)
 
         if (requestCode == this.REQUEST_CODE && resultCode == RESULT_OK && data != null) {
             Picasso.get().load(data.data).into(avatar)

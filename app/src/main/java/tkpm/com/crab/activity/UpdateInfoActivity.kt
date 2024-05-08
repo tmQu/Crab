@@ -17,15 +17,15 @@ import okhttp3.MediaType
 import okhttp3.MultipartBody
 import okhttp3.RequestBody
 import tkpm.com.crab.R
-import tkpm.com.crab.activity.customer.MapsActivity
+import tkpm.com.crab.activity.customer.CustomerMapsActivity
 import tkpm.com.crab.activity.driver.DriverMapActivity
 import tkpm.com.crab.api.APICallback
 import tkpm.com.crab.api.APIService
 import tkpm.com.crab.credential_service.CredentialService
+import tkpm.com.crab.dialog.LoadingDialog
 import tkpm.com.crab.objects.AccountResponse
 import tkpm.com.crab.objects.BucketResponse
 import tkpm.com.crab.objects.InternalAccount
-import tkpm.com.crab.dialog.LoadingDialog
 import java.io.ByteArrayOutputStream
 
 class UpdateInfoActivity : AppCompatActivity() {
@@ -64,7 +64,7 @@ class UpdateInfoActivity : AppCompatActivity() {
         // Change avatar option
         avatar.setOnClickListener {
             val intent = Intent(Intent.ACTION_PICK, MediaStore.Images.Media.EXTERNAL_CONTENT_URI)
-            startActivityForResult(intent, this.REQUEST_CODE);
+            startActivityForResult(intent, this.REQUEST_CODE)
         }
 
         // Disable phone input
@@ -148,7 +148,10 @@ class UpdateInfoActivity : AppCompatActivity() {
                             // Move to the MapsActivity by role
                             val intent =
                                 if (CredentialService().getAll().role == "customer")
-                                    Intent(this@UpdateInfoActivity, MapsActivity::class.java)
+                                    Intent(
+                                        this@UpdateInfoActivity,
+                                        CustomerMapsActivity::class.java
+                                    )
                                 else
                                     Intent(this@UpdateInfoActivity, DriverMapActivity::class.java)
 
@@ -193,7 +196,7 @@ class UpdateInfoActivity : AppCompatActivity() {
                     // Move to the MapsActivity by role
                     val intent =
                         if (CredentialService().getAll().role == "customer")
-                            Intent(this@UpdateInfoActivity, MapsActivity::class.java)
+                            Intent(this@UpdateInfoActivity, CustomerMapsActivity::class.java)
                         else
                             Intent(this@UpdateInfoActivity, DriverMapActivity::class.java)
 
@@ -213,7 +216,7 @@ class UpdateInfoActivity : AppCompatActivity() {
     }
 
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
-        super.onActivityResult(requestCode, resultCode, data);
+        super.onActivityResult(requestCode, resultCode, data)
 
         if (requestCode == this.REQUEST_CODE && resultCode == RESULT_OK && data != null) {
             Picasso.get().load(data.data).into(avatar)

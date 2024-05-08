@@ -13,7 +13,7 @@ import com.google.firebase.messaging.RemoteMessage
 import com.google.gson.JsonObject
 import tkpm.com.crab.CrabApplication
 import tkpm.com.crab.R
-import tkpm.com.crab.activity.customer.MapsActivity
+import tkpm.com.crab.activity.customer.CustomerMapsActivity
 import tkpm.com.crab.api.APICallback
 import tkpm.com.crab.api.APIService
 import tkpm.com.crab.credential_service.CredentialService
@@ -69,7 +69,7 @@ class CustomerNotification: FirebaseMessagingService() {
     }
 
     private fun sendNotification(title: String?, mess: String?) {
-        val intent = Intent(this, MapsActivity::class.java)
+        val intent = Intent(this, CustomerMapsActivity::class.java)
         val pendingIntent = PendingIntent.getActivity(this, 0, intent, PendingIntent.FLAG_MUTABLE)
         Log.i("Notification, ", "title: $title, mess: $mess")
         val notificationBuilder =

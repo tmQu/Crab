@@ -1,5 +1,6 @@
 package tkpm.com.crab.objects
 
+
 import com.google.gson.annotations.SerializedName
 
 data class BookingRequest (
@@ -15,28 +16,7 @@ data class BookingRequest (
     val vehicle: String,
     val service: String,
     val fee: Int,
-    val visa: String
+    val visa: String,
+    val distance: Long,
+    val duration: Long
 )
-
-
-data class MongoLocation(
-    @SerializedName("_id") val id: String, val type: String, val coordinates: List<Double>
-)
-
-data class LocationRecord(
-    @SerializedName("_id") val id: String, val address: String, val location: MongoLocation
-)
-
-data class BookingInfo(
-    @SerializedName("_id") val id: String,
-    val pickup: LocationRecord,
-    val destination: LocationRecord,
-    val phone: String,
-    val name: String,
-    val fee: Int
-)
-
-data class Booking(
-    @SerializedName("_id") val id: String, val status: String, val info: BookingInfo, val service: String, val driver: User
-)
-

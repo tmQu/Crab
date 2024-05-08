@@ -15,12 +15,11 @@ import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
 import com.google.firebase.FirebaseApp
 import com.google.firebase.messaging.FirebaseMessaging
-import com.google.firebase.messaging.FirebaseMessagingService
 import com.google.gson.JsonObject
 import tkpm.com.crab.activity.UpdateInfoActivity
-import tkpm.com.crab.activity.driver.DriverMapActivity
-import tkpm.com.crab.activity.customer.MapsActivity
 import tkpm.com.crab.activity.authentication.phone.PhoneLoginActivity
+import tkpm.com.crab.activity.customer.CustomerMapsActivity
+import tkpm.com.crab.activity.driver.DriverMapActivity
 import tkpm.com.crab.api.APICallback
 import tkpm.com.crab.api.APIService
 import tkpm.com.crab.credential_service.CredentialService
@@ -73,7 +72,7 @@ class MainActivity : AppCompatActivity() {
                         if(CredentialService().getAll().role == "driver")
                             Intent(this@MainActivity, DriverMapActivity::class.java)
                         else
-                            Intent(this@MainActivity, MapsActivity::class.java)
+                            Intent(this@MainActivity, CustomerMapsActivity::class.java)
                     }
                 FirebaseMessaging.getInstance().token.addOnCompleteListener {
                     sendRegistrationToServer(it.result.toString())

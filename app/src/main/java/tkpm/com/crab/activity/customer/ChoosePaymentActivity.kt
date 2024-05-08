@@ -35,7 +35,7 @@ class PaymentSelectionAdapter(
         parent: android.view.ViewGroup, viewType: Int
     ): PaymentSelectionAdapter.PaymentViewHolder {
         val itemView = android.view.LayoutInflater.from(parent.context).inflate(
-            R.layout.item_payment_method,
+            R.layout.item_payment_method_layout,
             parent,
             false
         )
@@ -124,7 +124,7 @@ class ChoosePaymentActivity : AppCompatActivity() {
                 paymentRecyclerView.adapter = paymentAdapter
                 paymentRecyclerView.layoutManager = androidx.recyclerview.widget.LinearLayoutManager(this@ChoosePaymentActivity)
 
-                Log.d("API_SERVICE", "Success: ${data.data.toString()}")
+                Log.d("API_SERVICE", "Success: ${data.data}")
             }
 
             override fun onError(error: Throwable) {
