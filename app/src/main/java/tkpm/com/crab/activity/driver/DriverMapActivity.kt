@@ -1,6 +1,7 @@
 package tkpm.com.crab.activity.driver
 
 import android.Manifest
+import android.app.Activity
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.net.Uri
@@ -13,6 +14,7 @@ import android.widget.LinearLayout
 import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.enableEdgeToEdge
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.constraintlayout.widget.ConstraintLayout
 import androidx.core.app.ActivityCompat
@@ -121,6 +123,42 @@ class DriverMapActivity : AppCompatActivity(), OnMapReadyCallback {
     private val polylines: MutableList<Polyline> = ArrayList()
 
     private lateinit var webSocket: WebSocket
+
+    private val startCompleteOrderForResult = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
+        if (result.resultCode == Activity.RESULT_OK) {
+            // Handle the returned result
+            // Close all fragments and back to default fragment to wait for new booking
+            driverStatus = ONLINE
+            webSocket.connectWebSocket(BuildConfig.BASE_URL_WS)
+            webSocket.driverOnline()
+            webSocket.updateVehicle(vehicleType)
+            webSocket.updateLocation(
+                currentLocation.latitude, currentLocation.longitude
+            )
+            handleDriverStatus()
+            clearLines()
+            clearMarkers()
+
+            // Clear the current booking
+            currentBooking = null
+        }
+
+        if (result.resultCode == Activity.RESULT_CANCELED) {
+            // Handle the cancelled result
+            // Close all fragments, back to default fragment and set the driver status to offline
+            driverStatus = OFFLINE
+            webSocket.driverOffline()
+            webSocket.closeWebSocket()
+            handleDriverStatus()
+
+            // Clear the current booking
+            currentBooking = null
+
+            // Clear the map
+            clearLines()
+            clearMarkers()
+        }
+    }
 
     private fun setIncomeBooking(booking: Booking) {
         driverStatus = BUSY
@@ -237,25 +275,13 @@ class DriverMapActivity : AppCompatActivity(), OnMapReadyCallback {
             } else if (btnStep.text == "Đã trả") {
                 updateBookingStatus(booking.id, "completed")
 
-                // Close all fragments and back to default fragment to wait for new booking
-                driverStatus = ONLINE
-                webSocket.connectWebSocket(BuildConfig.BASE_URL_WS)
-                webSocket.driverOnline()
-                webSocket.updateVehicle(vehicleType)
-                webSocket.updateLocation(
-                    currentLocation.latitude, currentLocation.longitude
-                )
-                handleDriverStatus()
-                startBtnGroup.visibility = View.VISIBLE
-                btnStep.visibility = View.GONE
-                clearLines()
-                clearMarkers()
+                // Open complete order activity
+                val intent = Intent(this, CompleteOrderActivity::class.java)
+                startCompleteOrderForResult.launch(intent)
 
-                // Clear the current booking
-                currentBooking = null
-
-                // Set text
+                // Change to default status
                 btnStep.text = "Đã đón"
+                startBtnGroup.visibility = View.VISIBLE
             }
         }
         phoneBtn.setOnClickListener {
