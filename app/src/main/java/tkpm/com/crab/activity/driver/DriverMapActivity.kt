@@ -60,30 +60,12 @@ import tkpm.com.crab.api.APICallback
 import tkpm.com.crab.api.APIService
 import tkpm.com.crab.credential_service.CredentialService
 import tkpm.com.crab.databinding.ActivityDriverMapsBinding
+import tkpm.com.crab.objects.Booking
 import tkpm.com.crab.objects.VehicleValidation
 import tkpm.com.crab.utils.PriceDisplay
 import java.net.URL
 
-data class MongoLocation(
-    @SerializedName("_id") val id: String, val type: String, val coordinates: List<Double>
-)
 
-data class LocationRecord(
-    @SerializedName("_id") val id: String, val address: String, val location: MongoLocation
-)
-
-data class BookingInfo(
-    @SerializedName("_id") val id: String,
-    val pickup: LocationRecord,
-    val destination: LocationRecord,
-    val phone: String,
-    val name: String,
-    val fee: Int
-)
-
-data class Booking(
-    @SerializedName("_id") val id: String, val status: String, val info: BookingInfo, val service: String
-)
 
 
 class DriverMapActivity : AppCompatActivity(), OnMapReadyCallback {
@@ -178,7 +160,7 @@ class DriverMapActivity : AppCompatActivity(), OnMapReadyCallback {
                 MarkerOptions().position(currentLocation).title("Current Location")
             )
 
-            updateBookingStatus(booking.id, "accepted")
+            updateBookingStatusWithLatLng(booking.id, "accepted", currentLocation.latitude, currentLocation.longitude)
         }
         findViewById<Button>(R.id.reject_btn).setOnClickListener {
             webSocket.rejectBooking(booking.id)
@@ -190,9 +172,14 @@ class DriverMapActivity : AppCompatActivity(), OnMapReadyCallback {
             clearLines()
             clearMarkers()
         }
-        btnStep.text = "Đã đón"
+        btnStep.text = "Đã tới"
 
         btnStep.setOnClickListener {
+            if (btnStep.text == "Đã tới")
+            {
+                updateBookingStatus(booking.id, "arrived-at-pick-up")
+                btnStep.text = "Đã đón"
+            }
             if(btnStep.text == "Đã đón") {
                 getDirection(LatLng(booking.info.pickup.location.coordinates[1], booking.info.pickup.location.coordinates[0]), LatLng(booking.info.destination.location.coordinates[1], booking.info.destination.location.coordinates[0]), true)
                 clearMarkers()
@@ -213,7 +200,7 @@ class DriverMapActivity : AppCompatActivity(), OnMapReadyCallback {
                         )
                     ).title("Destination Location")
                 )
-
+                updateBookingStatus(booking.id, "pick-up")
                 btnStep.text = "Đã trả"
             } else if(btnStep.text == "Đã trả") {
                 updateBookingStatus(booking.id, "completed")
@@ -223,6 +210,26 @@ class DriverMapActivity : AppCompatActivity(), OnMapReadyCallback {
             val intent = Intent(Intent.ACTION_DIAL, Uri.parse("tel:" + booking.info.phone));
             startActivity(intent);
         }
+    }
+
+    private fun updateBookingStatusWithLatLng(bookingId: String, status: String, lat: Double = 0.0, lng: Double = 0.0) {
+        val driverId = CredentialService().getAll().id
+        val obj = JSONObject()
+        obj.put("id", bookingId)
+        obj.put("status", status)
+        obj.put("driver", driverId)
+        obj.put("driverLat", lat)
+        obj.put("driverLng", lng)
+        APIService().doPatch<Any>("bookings", obj, object : APICallback<Any> {
+            override fun onSuccess(data: Any) {
+
+            }
+
+            override fun onError(error: Throwable) {
+                Toast.makeText(this@DriverMapActivity, "Error updating booking", Toast.LENGTH_SHORT).show()
+                Log.i("DriverMapActivity", "${error.message}")
+            }
+        })
     }
 
     private fun updateBookingStatus(bookingId: String, status: String) {

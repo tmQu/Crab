@@ -3,8 +3,10 @@ package tkpm.com.crab.activity.customer
 
 import android.Manifest
 import android.app.Activity
+import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
+import android.content.IntentFilter
 import android.content.pm.PackageManager
 import android.graphics.Color
 import android.os.AsyncTask
@@ -43,6 +45,7 @@ import com.google.android.gms.maps.OnMapReadyCallback
 import com.google.android.gms.maps.SupportMapFragment
 import com.google.android.gms.maps.model.BitmapDescriptorFactory
 import com.google.android.gms.maps.model.LatLng
+import com.google.android.gms.maps.model.LatLngBounds
 import com.google.android.gms.maps.model.Marker
 import com.google.android.gms.maps.model.MarkerOptions
 import com.google.android.gms.maps.model.Polyline
@@ -57,6 +60,7 @@ import com.google.android.libraries.places.api.net.PlacesClient
 import com.google.android.material.bottomsheet.BottomSheetBehavior
 import com.google.android.material.sidesheet.SideSheetBehavior
 import com.google.firebase.auth.FirebaseAuth
+import com.squareup.picasso.Picasso
 import org.json.JSONException
 import org.json.JSONObject
 import tkpm.com.crab.BuildConfig
@@ -67,18 +71,37 @@ import tkpm.com.crab.adapter.MapPredictionAdapter
 import tkpm.com.crab.adapter.TypeVehicleAdapter
 import tkpm.com.crab.api.APICallback
 import tkpm.com.crab.api.APIService
+import tkpm.com.crab.constant.NOTIFICATION
 import tkpm.com.crab.credential_service.CredentialService
+import tkpm.com.crab.objects.Booking
 import tkpm.com.crab.objects.BookingRequest
 import tkpm.com.crab.objects.PaymentMethodSerializable
+import tkpm.com.crab.objects.User
 import tkpm.com.crab.objects.VehicleTypePrice
 import tkpm.com.crab.objects.VehilceTypePriceResponse
 import java.net.URL
+import java.util.concurrent.Executors
+import java.util.concurrent.TimeUnit
 
 
 class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
+    companion object {
+        const val CHOOSE_LOCATION = 1
+        const val CHOOSE_VEHICLE = 2
+        const val WAIT_DRIVER = 3
+        const val DRIVER_COMING = 4
+        const val DRIVER_ARRIVED = 5
+        const val PICK_UP = 6
+        const val FINISH_TRIP = 7
+    }
+    private var tripStatus = -1
+
+
     val REQUEST_CODE_PERMISSION = 1
     val TAG = "MapsActivity"
 
+
+    // map
     private lateinit var mMap: GoogleMap
 
     private lateinit var locationProviderClient: FusedLocationProviderClient
@@ -89,10 +112,26 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
 
     private val sessionToken = AutocompleteSessionToken.newInstance()
     private lateinit var autocomplete_addr: AutoCompleteTextView
+
+
+    // bottom sheet
     private lateinit var bottomChooseVehicle: BottomSheetBehavior<ConstraintLayout>
     private lateinit var bottomChooseLocation: BottomSheetBehavior<ConstraintLayout>
+    private lateinit var bottomWaitDriver: BottomSheetBehavior<ConstraintLayout>
+    private lateinit var bottomDriverComing: BottomSheetBehavior<ConstraintLayout>
+    private lateinit var bottomDirverArrived: BottomSheetBehavior<ConstraintLayout>
+    private lateinit var bottomFinishTrip: BottomSheetBehavior<ConstraintLayout>
+
     private lateinit var leftUserMenu: SideSheetBehavior<ConstraintLayout>
     private lateinit var userMenuButton: Button
+
+    // driver infor, booking info
+    private lateinit var booking: Booking
+    private var booking_id = ""
+    private var driver_id = ""
+    private var driverLat: Double = 0.0
+    private var driverLng: Double = 0.0
+
 
     private val handler = Handler(Looper.getMainLooper())
     private var visaId = ""
@@ -100,6 +139,7 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
     // Marker
     private var destinationMarker: Marker? = null
     private var currentMarker: Marker? = null
+    private var driverMarker: Marker? = null
 
     private var distance = 0L
     private var duration = 0L
@@ -111,12 +151,49 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
 
     private lateinit var resultLauncher: ActivityResultLauncher<Intent>
 
+    private val myBroadcastReceiver = object : BroadcastReceiver()
+    {
+        override fun onReceive(context: Context?, intent: Intent?) {
+            val message = intent?.getStringExtra("message")
+            val bookingId = intent?.getStringExtra("booking_id")
+            Log.i("Notification", "message: $message")
+            if(message == NOTIFICATION.DRIVER_COMMING)
+            {
+                tripStatus = DRIVER_COMING
+                booking_id = bookingId?:""
+                driverLat = intent?.getDoubleExtra("driver_lat", 0.0) ?: 0.0
+                driverLng = intent?.getDoubleExtra("driver_lng", 0.0) ?: 0.0
+                handleBottomSheet()
+            }
+            if(message == NOTIFICATION.DRIVER_ARRIVED)
+            {
+                tripStatus = DRIVER_ARRIVED
+                handleBottomSheet()
+            }
+            if(message == NOTIFICATION.PICK_UP)
+            {
+                tripStatus = PICK_UP
+                handleBottomSheet()
+            }
+
+            if(message == NOTIFICATION.FINISH_TRIP)
+            {
+                tripStatus = FINISH_TRIP
+                handleBottomSheet()
+            }
+        }
+    }
+
+
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContentView(R.layout.activity_maps)
 
         userMenuButton = findViewById(R.id.left_menu_button)
+
+        registerReceiver(myBroadcastReceiver, IntentFilter(NOTIFICATION.ACTION_NAME), RECEIVER_EXPORTED)
 
         checkLocationPermissions()
 
@@ -142,21 +219,47 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
         autocomplete_addr = findViewById(R.id.autocomplete_addr)
         bottomChooseVehicle = BottomSheetBehavior.from(findViewById(R.id.bottom_type_vehicle))
         bottomChooseLocation = BottomSheetBehavior.from(findViewById(R.id.bottom_choose_location))
+        bottomWaitDriver = BottomSheetBehavior.from(findViewById(R.id.bottom_wait_driver))
+        bottomDriverComing = BottomSheetBehavior.from(findViewById(R.id.bottom_driver_coming))
+        bottomDirverArrived = BottomSheetBehavior.from(findViewById(R.id.bottom_driver_arrived))
+        bottomFinishTrip = BottomSheetBehavior.from(findViewById(R.id.bottom_finish_trip))
+
         leftUserMenu = SideSheetBehavior.from(findViewById(R.id.left_menu))
 
         bottomChooseVehicle.isHideable = true
         bottomChooseLocation.isHideable = true
-        leftUserMenu.isDraggable = true
+        bottomWaitDriver.isHideable = true
+        bottomDriverComing.isHideable = true
+        bottomDirverArrived.isHideable = true
+        bottomFinishTrip.isHideable = true
+
 
         bottomChooseVehicle.state = BottomSheetBehavior.STATE_HIDDEN
         bottomChooseLocation.state = BottomSheetBehavior.STATE_HIDDEN
+        bottomWaitDriver.state = BottomSheetBehavior.STATE_HIDDEN
+        bottomDriverComing.state = BottomSheetBehavior.STATE_HIDDEN
+        bottomDirverArrived.state = BottomSheetBehavior.STATE_HIDDEN
+        bottomFinishTrip.state = BottomSheetBehavior.STATE_HIDDEN
+
+        bottomWaitDriver.isDraggable = false
+        bottomDriverComing.isDraggable = false
+        bottomDirverArrived.isDraggable = false
+
+
+
         leftUserMenu.state = SideSheetBehavior.STATE_HIDDEN
+        leftUserMenu.isDraggable = true
+
 
         bottomChooseVehicle.addBottomSheetCallback(object : BottomSheetBehavior.BottomSheetCallback() {
             override fun onStateChanged(bottomSheet: View, newState: Int) {
                 if(newState == BottomSheetBehavior.STATE_HIDDEN)
                 {
-                    bottomChooseLocation.state = BottomSheetBehavior.STATE_COLLAPSED
+                    if(tripStatus == CHOOSE_VEHICLE)
+                    {
+                        tripStatus = CHOOSE_LOCATION
+                        handleBottomSheet()
+                    }
                 }
             }
 
@@ -167,6 +270,8 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
 
 
         handleAutocompleteAddr()
+        val scheduleTaskExecutor = Executors.newScheduledThreadPool(5)
+        
 
 
         findViewById<ImageButton>(R.id.here_btn).setOnClickListener {
@@ -251,7 +356,8 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
 
         APIService().doPost<BookingRequest>("bookings", data, object : APICallback<Any> {
             override fun onSuccess(result: Any) {
-                Toast.makeText(this@MapsActivity, "Success", Toast.LENGTH_SHORT).show()
+//                Toast.makeText(this@MapsActivity, "Success", Toast.LENGTH_SHORT).show()
+
             }
 
             override fun onError(t: Throwable) {
@@ -344,13 +450,61 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
             activity.getTime(result)
 
             activity.getDesAddress(result)
-            activity.showTheBottomLocation()
+            if (activity.tripStatus == CHOOSE_LOCATION || activity.tripStatus == -1)
+            {
+                activity.tripStatus = CHOOSE_LOCATION
+                activity.handleBottomSheet()
+            }
             activity.drawPath(result)
         }
 
 
 
     }
+
+    fun handleBottomSheet()
+    {
+
+        val bottoms = listOf(bottomChooseVehicle, bottomChooseLocation, bottomWaitDriver, bottomDriverComing, bottomDirverArrived, bottomFinishTrip)
+        for (bottom in bottoms)
+        {
+            bottom.state = BottomSheetBehavior.STATE_HIDDEN
+        }
+
+        when(tripStatus)
+        {
+            CHOOSE_LOCATION -> {
+                bottomChooseLocation.state = BottomSheetBehavior.STATE_EXPANDED
+                showTheBottomLocation()
+            }
+            CHOOSE_VEHICLE -> {
+                bottomChooseVehicle.state = BottomSheetBehavior.STATE_EXPANDED
+                showTheBottomVehicle()
+            }
+            WAIT_DRIVER -> {
+                bottomWaitDriver.state = BottomSheetBehavior.STATE_EXPANDED
+                showTheBottomWaiting()
+            }
+            DRIVER_COMING -> {
+                Log.i("Notification", "booking_id: $booking_id")
+                bottomDriverComing.state = BottomSheetBehavior.STATE_EXPANDED
+                showTheBottomDriverComing()
+            }
+            DRIVER_ARRIVED -> {
+                bottomDirverArrived.state = BottomSheetBehavior.STATE_EXPANDED
+                showTheBottomDriverArrived()
+            }
+            PICK_UP -> {
+
+            }
+            FINISH_TRIP -> {
+                bottomFinishTrip.state = BottomSheetBehavior.STATE_EXPANDED
+                showTheBottomFinishTrip()
+            }
+        }
+
+    }
+
 
     fun showTheBottomLocation() {
         val timeTv = findViewById<TextView>(R.id.time)
@@ -362,11 +516,11 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
         timeTv.text = "(${duration / 60})"
         distanceTv.text = "${distance / 1000} km"
         adressTv.text = destinationAddress
+
         bottomChooseLocation.state = BottomSheetBehavior.STATE_EXPANDED
         chooseBtn.setOnClickListener {
-            bottomChooseVehicle.state = BottomSheetBehavior.STATE_EXPANDED
-            bottomChooseLocation.state = BottomSheetBehavior.STATE_HIDDEN
-            showTheBottomVehicle()
+            tripStatus = CHOOSE_VEHICLE
+            handleBottomSheet()
         }
 
 
@@ -378,6 +532,8 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
 
         payBtn.setOnClickListener {
             createRequest()
+            tripStatus = WAIT_DRIVER
+            handleBottomSheet()
         }
         val data = mapOf("distance" to distance/1000)
 
@@ -394,11 +550,124 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
             override fun onError(t: Throwable) {
                 Toast.makeText(this@MapsActivity, "Error: ${t.message}", Toast.LENGTH_SHORT).show()
                 Log.i("MapsActivity", t.message.toString())
-
             }
         })
     }
 
+    fun showTheBottomWaiting()
+    {
+
+    }
+
+    fun showTheBottomDriverComing()
+    {
+        val driverName = findViewById<TextView>(R.id.driver_name)
+        val driverPhone = findViewById<TextView>(R.id.driver_phone)
+        val driverAvatar = findViewById<ImageView>(R.id.driver_avatar)
+
+
+
+        Log.i("Notification", "/bookings/driver-assigned/${booking_id}")
+
+        APIService().doGet<Booking>("bookings/${booking_id}", object : APICallback<Any> {
+            override fun onSuccess(result: Any) {
+                val booking = result as Booking
+                val driver = booking.driver
+                driverName.text = driver.name
+                driverPhone.text = driver.phone
+                Picasso.get().load(driver.avatar).into(driverAvatar)
+                if(driverLat != 0.0 && driverLng != 0.0)
+                {
+                    getDirection(LatLng(driverLat, driverLng), LatLng(booking.info.pickup.location.coordinates[1], booking.info.pickup.location.coordinates[0]))
+                    clearMarkers()
+                    currentMarker = mMap.addMarker(
+                        MarkerOptions().position(
+                            LatLng(
+                                booking.info.pickup.location.coordinates[1],
+                                booking.info.pickup.location.coordinates[0]
+                            )
+                        ).title("Pickup Location")
+                    )
+                    driverMarker = mMap.addMarker(
+                        MarkerOptions().position(
+                            LatLng(driverLat, driverLng)
+                        ).title("Driver Location")
+                    )
+                }
+
+
+            }
+
+            override fun onError(t: Throwable) {
+                Toast.makeText(this@MapsActivity, "Error: ${t.message}", Toast.LENGTH_SHORT).show()
+            }
+        })
+    }
+
+    private fun clearMarkers() {
+        if (currentMarker != null) {
+            currentMarker?.remove()
+        }
+        if (destinationMarker != null) {
+            destinationMarker?.remove()
+        }
+
+        if(driverMarker != null)
+        {
+            driverMarker?.remove()
+        }
+
+    }
+
+    fun showTheBottomDriverArrived()
+    {
+        val driverName = findViewById<TextView>(R.id.driver_name)
+        val driverPhone = findViewById<TextView>(R.id.driver_phone)
+        val driverAvatar = findViewById<ImageView>(R.id.driver_avatar)
+
+
+        Log.i("Notification", "/bookings/driver-assigned/${booking_id}")
+
+        APIService().doGet<Booking>("bookings/${booking_id}", object : APICallback<Any> {
+            override fun onSuccess(result: Any) {
+                val booking = result as Booking
+                val driver = booking.driver
+                driverName.text = driver.name
+                driverPhone.text = driver.phone
+                Picasso.get().load(driver.avatar).into(driverAvatar)
+
+                getDirection(LatLng(booking.info.pickup.location.coordinates[1], booking.info.pickup.location.coordinates[0]), LatLng(booking.info.destination.location.coordinates[1], booking.info.destination.location.coordinates[0]))
+                clearMarkers()
+                currentMarker = mMap.addMarker(
+                    MarkerOptions().position(
+                        LatLng(
+                            booking.info.pickup.location.coordinates[1],
+                            booking.info.pickup.location.coordinates[0]
+                        )
+                    ).title("Pickup Location")
+                )
+                destinationMarker = mMap.addMarker(
+                    MarkerOptions().position(
+                        LatLng(
+                            booking.info.destination.location.coordinates[1],
+                            booking.info.destination.location.coordinates[0]
+                        )
+                    ).title("Destination Location")
+                )
+
+            }
+
+            override fun onError(t: Throwable) {
+                Toast.makeText(this@MapsActivity, "Error: ${t.message}", Toast.LENGTH_SHORT).show()
+            }
+        })
+    }
+
+    fun showTheBottomFinishTrip()
+    {
+
+
+    }
     fun getDesAddress(result: String?)
     {
         try {
@@ -451,9 +720,20 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
     }
 
 
+
+    private fun getDirection(origin: LatLng, destination: LatLng) {
+        mMap.moveCamera(CameraUpdateFactory.newLatLngBounds(LatLngBounds.Builder().include(origin!!).include(destination!!).build(), 50))
+        val url =
+            "https://maps.googleapis.com/maps/api/directions/json?origin=${origin?.latitude},${origin?.longitude}&destination=${destination?.latitude},${destination?.longitude}&key=${BuildConfig.MAPS_API_KEY}&mode=driving"
+
+        val directionRequest = DirectionRequest(this, url)
+        directionRequest.execute()
+
+    }
     private fun getDirection() {
         val origin = currentMarker?.position
         val destination = destinationMarker?.position
+        mMap.moveCamera(CameraUpdateFactory.newLatLngBounds(LatLngBounds.Builder().include(origin!!).include(destination!!).build(), 50))
 
         val url =
             "https://maps.googleapis.com/maps/api/directions/json?origin=${origin?.latitude},${origin?.longitude}&destination=${destination?.latitude},${destination?.longitude}&key=${BuildConfig.MAPS_API_KEY}&mode=driving"

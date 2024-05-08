@@ -95,5 +95,11 @@ dependencies {
 
     // Picasso for image loading
     implementation("com.squareup.picasso:picasso:2.8")
+
+    // image gif
+    implementation("pl.droidsonroids.gif:android-gif-drawable:1.2.28")
+
+    // notification
+    implementation("com.google.firebase:firebase-messaging")
 }
 

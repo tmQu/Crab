@@ -23,6 +23,8 @@ class APIService {
             ) {
                 if (response.isSuccessful && response.body()!!.success) {
                     val data = response.body()?.data
+                    Log.i("API_SERVICE", "Data: $data")
+
                     val gson = Gson()
                     val type = object : TypeToken<T>() {}.type
                     val result = gson.fromJson(data, type) as Any
@@ -111,7 +113,6 @@ class APIService {
             ) {
                 if (response.isSuccessful && response.body()!!.success) {
                     val data = response.body()?.data
-
                     val gson = Gson()
                     val type = object : TypeToken<T>() {}.type
                     val result = gson.fromJson(data, type) as Any
