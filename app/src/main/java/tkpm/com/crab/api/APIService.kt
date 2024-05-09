@@ -21,6 +21,7 @@ class APIService {
                 call: Call<BaseResponse<JsonElement>>,
                 response: Response<BaseResponse<JsonElement>>
             ) {
+                Log.i("API_SERVICE_GET", "Response: ${response.body()}")
                 if (response.isSuccessful && response.body()!!.success) {
                     val data = response.body()?.data
                     Log.i("API_SERVICE_GET", "Data: $data")
@@ -32,7 +33,8 @@ class APIService {
                     // Custom callback to process data
                     callback.onSuccess(result)
                 } else {
-                    callback.onError(Throwable(response.body()!!.message))
+                    val errorResponse = Gson().fromJson(response.errorBody()!!.charStream(), BaseResponse::class.java)
+                    callback.onError(Throwable(errorResponse.message))
                 }
             }
 
@@ -52,7 +54,7 @@ class APIService {
                 call: Call<BaseResponse<JsonElement>>,
                 response: Response<BaseResponse<JsonElement>>
             ) {
-                if (response.isSuccessful && response.body()!!.success) {
+                if (response.isSuccessful) {
                     val data = response.body()?.data
                     Log.d("API_SERVICE_PATCH", "Data: $data")
                     val gson = Gson()
@@ -62,7 +64,8 @@ class APIService {
                     // Custom callback to process data
                     callback.onSuccess(result)
                 } else {
-                    callback.onError(Throwable(response.body()!!.message))
+                    val errorResponse = Gson().fromJson(response.errorBody()!!.charStream(), BaseResponse::class.java)
+                    callback.onError(Throwable(errorResponse.message))
                 }
             }
 
@@ -112,7 +115,7 @@ class APIService {
                 call: Call<BaseResponse<JsonElement>>,
                 response: Response<BaseResponse<JsonElement>>
             ) {
-                if (response.isSuccessful && response.body()!!.success) {
+                if (response.isSuccessful) {
                     val data = response.body()?.data
                     val gson = Gson()
                     val type = object : TypeToken<T>() {}.type
@@ -120,7 +123,8 @@ class APIService {
                     // Custom callback to process data
                     callback.onSuccess(result)
                 } else {
-                    callback.onError(Throwable(response.body()!!.message))
+                    val errorResponse = Gson().fromJson(response.errorBody()!!.charStream(), BaseResponse::class.java)
+                    callback.onError(Throwable(errorResponse.message))
                 }
             }
 

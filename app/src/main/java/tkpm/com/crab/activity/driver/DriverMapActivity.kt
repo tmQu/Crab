@@ -55,6 +55,7 @@ import tkpm.com.crab.MainActivity
 import tkpm.com.crab.R
 import tkpm.com.crab.activity.ChangeInfoActivity
 import tkpm.com.crab.activity.HistoryActivity
+import tkpm.com.crab.activity.customer.CustomerMapsActivity
 import tkpm.com.crab.api.APICallback
 import tkpm.com.crab.api.APIService
 import tkpm.com.crab.credential_service.CredentialService
@@ -72,7 +73,18 @@ class DriverMapActivity : AppCompatActivity(), OnMapReadyCallback {
         const val ONLINE = 1
         const val OFFLINE = 2
         const val BUSY = 3
+
+        const val CHOOSE_LOCATION = 1
+        const val CHOOSE_VEHICLE = 2
+        const val WAIT_DRIVER = 3
+        const val DRIVER_COMING = 4
+        const val DRIVER_ARRIVED = 5
+        const val PICK_UP = 6
+        const val FINISH_TRIP = 7
+
     }
+
+    private var tripStatus = -1
 
     private lateinit var mMap: GoogleMap
     private lateinit var binding: ActivityDriverMapsBinding
@@ -139,8 +151,62 @@ class DriverMapActivity : AppCompatActivity(), OnMapReadyCallback {
             clearMarkers()
         }
     }
+    private fun getBooking() {
+        val user = CredentialService().getAll()
+        val obj = JsonObject()
+        obj.addProperty("id", user.id)
+        obj.addProperty("role", user.role)
+        APIService().doPost<Booking>("bookings/check-progress-booking", obj,object : APICallback<Any> {
+            override fun onSuccess(result: Any) {
+                currentBooking = result as Booking
+                driverStatus = BUSY
+                vehicleType = currentBooking?.vehicle  ?: ""
+                when(currentBooking?.status)
+                {
+                    "accepted" -> {
+                        tripStatus = DRIVER_COMING
+                        handleDriverStatus()
+                    }
+                    "arrived-at-pick-up" -> {
+                        tripStatus = DRIVER_ARRIVED
+                        handleDriverStatus()
+                    }
+                    "pick-up" -> {
+                        tripStatus = CustomerMapsActivity.PICK_UP
+                        handleDriverStatus()
+                    }
+                }
+                getDeviceLocation()
+            }
 
-    private fun setIncomeBooking(booking: Booking) {
+            override fun onError(error: Throwable) {
+                Log.e("API_SERVICE", "${error.message}")
+
+            }
+        })
+    }
+
+    private fun getDeviceLocation() {
+        locationProviderClient = LocationServices.getFusedLocationProviderClient(this)
+        try {
+            val locationRequest = locationProviderClient.lastLocation
+            locationRequest.addOnCompleteListener {
+                if (it.isSuccessful) {
+                    val location = it.result
+                    if (location != null) {
+                        currentLocation = LatLng(location.latitude, location.longitude)
+                    }
+                }
+
+                setIncomeBooking(currentBooking!!, false)
+
+            }
+        } catch (error: SecurityException) {
+            Log.e("SET_CURRENT_LOCATION", "Error getting device location: ${error.message}")
+        }
+    }
+
+    private fun setIncomeBooking(booking: Booking, newBooking: Boolean = true) {
         driverStatus = BUSY
         handleDriverStatus()
         val serviceName = findViewById<TextView>(R.id.service_name)
@@ -158,6 +224,133 @@ class DriverMapActivity : AppCompatActivity(), OnMapReadyCallback {
         customerName.text = booking.info.name
         serviceName.text = booking.service
         address.text = booking.info.destination.address
+
+        if (newBooking)
+        {
+            tripStatus = WAIT_DRIVER
+            getDirection(
+                LatLng(
+                    booking.info.pickup.location.coordinates[1],
+                    booking.info.pickup.location.coordinates[0]
+                ), LatLng(
+                    booking.info.destination.location.coordinates[1],
+                    booking.info.destination.location.coordinates[0]
+                ), true
+            )
+
+            clearMarkers()
+            pickupMarker = mMap.addMarker(
+                MarkerOptions().position(
+                    LatLng(
+                        booking.info.pickup.location.coordinates[1],
+                        booking.info.pickup.location.coordinates[0]
+                    )
+                ).title("Pickup Location").icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_AZURE))
+            )
+            destinationMarker = mMap.addMarker(
+                MarkerOptions().position(
+                    LatLng(
+                        booking.info.destination.location.coordinates[1],
+                        booking.info.destination.location.coordinates[0]
+                    )
+                ).title("Destination Location")
+            )
+        }
+
+        findViewById<Button>(R.id.accept_btn).setOnClickListener {
+            webSocket.acceptBooking(booking.id)
+            startBtnGroup.visibility = View.GONE
+            btnStep.visibility = View.VISIBLE
+
+            drawDriverToPickup(booking)
+            tripStatus = DRIVER_COMING
+            handleTripStatus(booking, btnStep, startBtnGroup)
+            updateBookingStatusWithLatLng(booking.id, "accepted", currentLocation.latitude, currentLocation.longitude)
+        }
+        findViewById<Button>(R.id.reject_btn).setOnClickListener {
+            webSocket.rejectBooking(booking.id)
+            startBtnGroup.visibility = View.GONE
+            driverStatus = ONLINE
+            handleDriverStatus()
+            startBtnGroup.visibility = View.VISIBLE
+            btnStep.visibility = View.GONE
+            clearLines()
+            clearMarkers()
+        }
+
+        handleTripStatus(booking, btnStep, startBtnGroup)
+
+        btnStep.setOnClickListener {
+            if (tripStatus == DRIVER_COMING)
+            {
+                tripStatus = DRIVER_ARRIVED
+                updateBookingStatus(booking.id, "arrived-at-pick-up")
+                btnStep.text = "Đã đón"
+            }
+            else if(tripStatus == DRIVER_ARRIVED) {
+                drawPickUpToDes(booking)
+                tripStatus = PICK_UP
+                updateBookingStatus(booking.id, "pick-up")
+                btnStep.text = "Đã trả"
+            } else if (tripStatus == PICK_UP) {
+                updateBookingStatus(booking.id, "completed")
+
+                // Open complete order activity
+                val intent = Intent(this, CompleteOrderActivity::class.java)
+                startCompleteOrderForResult.launch(intent)
+
+                // Change to default status
+                btnStep.text = "Đã tới"
+                startBtnGroup.visibility = View.VISIBLE
+                tripStatus = FINISH_TRIP
+            }
+        }
+        phoneBtn.setOnClickListener {
+            val intent = Intent(Intent.ACTION_DIAL, Uri.parse("tel:" + booking.info.phone))
+            startActivity(intent)
+        }
+    }
+
+    private fun handleTripStatus(booking: Booking, btnStep: Button, startBtnGroup: LinearLayout)
+    {
+        when(tripStatus)
+        {
+            WAIT_DRIVER -> {
+                btnStep.visibility = View.GONE
+                startBtnGroup.visibility = View.VISIBLE
+            }
+
+            DRIVER_COMING -> {
+                Log.i("DriverMapActivity", "Driver coming")
+                drawDriverToPickup(booking)
+                Log.i("DriverMapActivity", "Driver coming")
+                btnStep.text = "Đã tới"
+                btnStep.visibility = View.VISIBLE
+                startBtnGroup.visibility = View.GONE
+            }
+
+            DRIVER_ARRIVED -> {
+                drawPickUpToDes(booking)
+                btnStep.text = "Đã đón"
+                btnStep.visibility = View.VISIBLE
+                startBtnGroup.visibility = View.GONE
+            }
+
+            PICK_UP -> {
+                drawPickUpToDes(booking)
+                btnStep.text = "Đã trả"
+                btnStep.visibility = View.VISIBLE
+                startBtnGroup.visibility = View.GONE
+            }
+
+            FINISH_TRIP -> {
+                btnStep.visibility = View.GONE
+                startBtnGroup.visibility = View.VISIBLE
+            }
+        }
+    }
+    private fun drawPickUpToDes(booking: Booking)
+    {
         getDirection(
             LatLng(
                 booking.info.pickup.location.coordinates[1],
@@ -176,6 +369,7 @@ class DriverMapActivity : AppCompatActivity(), OnMapReadyCallback {
                 )
             ).title("Pickup Location").icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_AZURE))
         )
+
         destinationMarker = mMap.addMarker(
             MarkerOptions().position(
                 LatLng(
@@ -184,95 +378,25 @@ class DriverMapActivity : AppCompatActivity(), OnMapReadyCallback {
                 )
             ).title("Destination Location")
         )
-        findViewById<Button>(R.id.accept_btn).setOnClickListener {
-            webSocket.acceptBooking(booking.id)
-            startBtnGroup.visibility = View.GONE
-            btnStep.visibility = View.VISIBLE
-            getDirection(
-                LatLng(currentLocation.latitude, currentLocation.longitude), LatLng(
+    }
+
+    private fun drawDriverToPickup(booking: Booking)
+    {
+        getDirection(
+            LatLng(currentLocation.latitude, currentLocation.longitude), LatLng(
+                booking.info.pickup.location.coordinates[1],
+                booking.info.pickup.location.coordinates[0]
+            ), true
+        )
+        clearMarkers()
+        pickupMarker = mMap.addMarker(
+            MarkerOptions().position(
+                LatLng(
                     booking.info.pickup.location.coordinates[1],
                     booking.info.pickup.location.coordinates[0]
-                ), true
-            )
-            clearMarkers()
-            pickupMarker = mMap.addMarker(
-                MarkerOptions().position(
-                    LatLng(
-                        booking.info.pickup.location.coordinates[1],
-                        booking.info.pickup.location.coordinates[0]
-                    )
-                ).title("Pickup Location").icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_AZURE))
-            )
-//            currentLocationMarker = mMap.addMarker(
-//                MarkerOptions().position(currentLocation).title("Current Location")
-//            )
-
-            updateBookingStatusWithLatLng(booking.id, "accepted", currentLocation.latitude, currentLocation.longitude)
-        }
-        findViewById<Button>(R.id.reject_btn).setOnClickListener {
-            webSocket.rejectBooking(booking.id)
-            startBtnGroup.visibility = View.GONE
-            driverStatus = ONLINE
-            handleDriverStatus()
-            startBtnGroup.visibility = View.VISIBLE
-            btnStep.visibility = View.GONE
-            clearLines()
-            clearMarkers()
-        }
-        btnStep.text = "Đã tới"
-
-        btnStep.setOnClickListener {
-            if (btnStep.text == "Đã tới")
-            {
-                updateBookingStatus(booking.id, "arrived-at-pick-up")
-                btnStep.text = "Đã đón"
-            }
-            if(btnStep.text == "Đã đón") {
-                getDirection(
-                    LatLng(
-                        booking.info.pickup.location.coordinates[1],
-                        booking.info.pickup.location.coordinates[0]
-                    ), LatLng(
-                        booking.info.destination.location.coordinates[1],
-                        booking.info.destination.location.coordinates[0]
-                    ), true
                 )
-                clearMarkers()
-                pickupMarker = mMap.addMarker(
-                    MarkerOptions().position(
-                        LatLng(
-                            booking.info.pickup.location.coordinates[1],
-                            booking.info.pickup.location.coordinates[0]
-                        )
-                    ).title("Pickup Location").icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_AZURE))
-                )
-
-                destinationMarker = mMap.addMarker(
-                    MarkerOptions().position(
-                        LatLng(
-                            booking.info.destination.location.coordinates[1],
-                            booking.info.destination.location.coordinates[0]
-                        )
-                    ).title("Destination Location")
-                )
-                updateBookingStatus(booking.id, "pick-up")
-                btnStep.text = "Đã trả"
-            } else if (btnStep.text == "Đã trả") {
-                updateBookingStatus(booking.id, "completed")
-
-                // Open complete order activity
-                val intent = Intent(this, CompleteOrderActivity::class.java)
-                startCompleteOrderForResult.launch(intent)
-
-                // Change to default status
-                btnStep.text = "Đã đón"
-                startBtnGroup.visibility = View.VISIBLE
-            }
-        }
-        phoneBtn.setOnClickListener {
-            val intent = Intent(Intent.ACTION_DIAL, Uri.parse("tel:" + booking.info.phone))
-            startActivity(intent)
-        }
+            ).title("Pickup Location").icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_AZURE))
+        )
     }
 
     private fun updateBookingStatusWithLatLng(bookingId: String, status: String, lat: Double = 0.0, lng: Double = 0.0) {
@@ -423,6 +547,7 @@ class DriverMapActivity : AppCompatActivity(), OnMapReadyCallback {
                         ).show()
                     }
                 })
+
         }
 
         findViewById<Button>(R.id.disconnect_btn).setOnClickListener {
@@ -504,7 +629,6 @@ class DriverMapActivity : AppCompatActivity(), OnMapReadyCallback {
             currentLocation = LatLng(
                 locationResult.lastLocation!!.latitude, locationResult.lastLocation!!.longitude
             )
-            Log.i("SHIT!", "callback")
 
 //            currentLocationMarker?.position = currentLocation
             // webSocket.updateLocation(currentLocation.latitude, currentLocation.longitude)
@@ -567,10 +691,13 @@ class DriverMapActivity : AppCompatActivity(), OnMapReadyCallback {
 //                        )
                         webSocket.updateLocation(currentLocation.latitude, currentLocation.longitude)
                         centreCameraOnLocation(currentLocation)
+                        centreCameraOnLocation(currentLocation)
                     }
                 }
             }
         }
+
+        getBooking()
 
     }
 

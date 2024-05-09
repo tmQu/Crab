@@ -60,6 +60,7 @@ import com.google.android.libraries.places.api.net.PlacesClient
 import com.google.android.material.bottomsheet.BottomSheetBehavior
 import com.google.android.material.sidesheet.SideSheetBehavior
 import com.google.firebase.auth.FirebaseAuth
+import com.google.gson.JsonObject
 import com.squareup.picasso.Picasso
 import org.json.JSONException
 import org.json.JSONObject
@@ -162,7 +163,6 @@ class CustomerMapsActivity : AppCompatActivity(), OnMapReadyCallback {
         override fun onReceive(context: Context?, intent: Intent?) {
             val message = intent?.getStringExtra("message")
             val bookingId = intent?.getStringExtra("booking_id")
-            Log.i("Notification", "message: $message")
             if(message == NOTIFICATION.DRIVER_COMMING)
             {
                 tripStatus = DRIVER_COMING
@@ -202,6 +202,9 @@ class CustomerMapsActivity : AppCompatActivity(), OnMapReadyCallback {
         registerReceiver(myBroadcastReceiver, IntentFilter(NOTIFICATION.ACTION_NAME), RECEIVER_EXPORTED)
 
         checkLocationPermissions()
+
+        // Get current booking
+
 
         // Set marker for current location
         setCurrentLocation()
@@ -354,6 +357,63 @@ class CustomerMapsActivity : AppCompatActivity(), OnMapReadyCallback {
         }
     }
 
+    private fun getBooking() {
+        val user = CredentialService().getAll()
+        val obj = JsonObject()
+        obj.addProperty("id", user.id)
+        obj.addProperty("role", user.role)
+        APIService().doPost<Booking>("bookings/check-progress-booking", obj,object : APICallback<Any> {
+            override fun onSuccess(result: Any) {
+                val booking = result as Booking
+                booking_id = booking.id
+
+                getDirection(LatLng(booking.info.pickup.location.coordinates[1], booking.info.pickup.location.coordinates[0]), LatLng(booking.info.destination.location.coordinates[1], booking.info.destination.location.coordinates[0]))
+                clearMarkers()
+                currentMarker = mMap.addMarker(
+                    MarkerOptions().position(
+                        LatLng(
+                            booking.info.pickup.location.coordinates[1],
+                            booking.info.pickup.location.coordinates[0]
+                        )
+                    ).title("Pickup Location")
+                )
+                destinationMarker = mMap.addMarker(
+                    MarkerOptions().position(
+                        LatLng(
+                            booking.info.destination.location.coordinates[1],
+                            booking.info.destination.location.coordinates[0]
+                        )
+                    ).title("Destination Location")
+                )
+
+                when(booking.status)
+                {
+                    "pending" -> {
+                        tripStatus = WAIT_DRIVER
+                        handleBottomSheet()
+                    }
+                    "accepted" -> {
+                        tripStatus = DRIVER_COMING
+                        handleBottomSheet()
+                    }
+                    "arrived-at-pick-up" -> {
+                        tripStatus = DRIVER_ARRIVED
+                        handleBottomSheet()
+                    }
+                    "pick-up" -> {
+                        tripStatus = PICK_UP
+                        handleBottomSheet()
+                    }
+                }
+            }
+
+            override fun onError(error: Throwable) {
+                Log.e("API_SERVICE", "${error.message}")
+
+            }
+        })
+    }
+
     private fun createRequest() {
         val user = FirebaseAuth.getInstance().currentUser
         val phone = user?.phoneNumber ?: ""
@@ -496,7 +556,8 @@ class CustomerMapsActivity : AppCompatActivity(), OnMapReadyCallback {
         {
             bottom.state = BottomSheetBehavior.STATE_HIDDEN
         }
-
+        autocomplete_addr.isEnabled =
+            !(tripStatus != CHOOSE_LOCATION && tripStatus != CHOOSE_VEHICLE)
         when(tripStatus)
         {
             CHOOSE_LOCATION -> {
@@ -600,7 +661,6 @@ class CustomerMapsActivity : AppCompatActivity(), OnMapReadyCallback {
 
 
 
-        Log.i("Notification", "/bookings/driver-assigned/${booking_id}")
 
         APIService().doGet<Booking>("bookings/${booking_id}", object : APICallback<Any> {
             override fun onSuccess(result: Any) {
@@ -659,7 +719,6 @@ class CustomerMapsActivity : AppCompatActivity(), OnMapReadyCallback {
         val driverAvatar = findViewById<ImageView>(R.id.driver_avatar)
 
 
-        Log.i("Notification", "/bookings/driver-assigned/${booking_id}")
 
         APIService().doGet<Booking>("bookings/${booking_id}", object : APICallback<Any> {
             override fun onSuccess(result: Any) {
@@ -762,6 +821,7 @@ class CustomerMapsActivity : AppCompatActivity(), OnMapReadyCallback {
 
     private fun getDirection(origin: LatLng, destination: LatLng) {
         mMap.moveCamera(CameraUpdateFactory.newLatLngBounds(LatLngBounds.Builder().include(origin!!).include(destination!!).build(), 50))
+        clearLines()
         val url =
             "https://maps.googleapis.com/maps/api/directions/json?origin=${origin?.latitude},${origin?.longitude}&destination=${destination?.latitude},${destination?.longitude}&key=${BuildConfig.MAPS_API_KEY}&mode=driving"
 
@@ -897,6 +957,7 @@ class CustomerMapsActivity : AppCompatActivity(), OnMapReadyCallback {
         // Obtain the SupportMapFragment and get notified when the map is ready to be used.
         val mapFragment = supportFragmentManager.findFragmentById(R.id.map) as SupportMapFragment
         mapFragment.getMapAsync(this)
+
     }
 
     private fun checkLocationPermissions() {
@@ -961,7 +1022,11 @@ class CustomerMapsActivity : AppCompatActivity(), OnMapReadyCallback {
         mMap.setOnMarkerClickListener(object : GoogleMap.OnMarkerClickListener {
             override fun onMarkerClick(p0: Marker): Boolean {
                 if (p0 == destinationMarker) {
-                    bottomChooseLocation.state = BottomSheetBehavior.STATE_EXPANDED
+                    if(tripStatus == CHOOSE_LOCATION)
+                    {
+                        tripStatus = CHOOSE_LOCATION
+                        handleBottomSheet()
+                    }
                     return true
                 }
                 return false
@@ -986,6 +1051,8 @@ class CustomerMapsActivity : AppCompatActivity(), OnMapReadyCallback {
             setDestinationLocationMarker(it)
             getDirection()
         }
+        getBooking()
+
     }
 
 

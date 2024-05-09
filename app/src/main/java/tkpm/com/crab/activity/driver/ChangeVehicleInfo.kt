@@ -112,6 +112,7 @@ class ChangeVehicleInfo : AppCompatActivity() {
         // Show loading dialog
         loadingDialog.startLoadingDialog()
 
+
         // Send data to server
         APIService().doPatch<AccountResponse>("accounts/${CredentialService().get()}/vehicles", vehicle, object:
             APICallback<Any> {
