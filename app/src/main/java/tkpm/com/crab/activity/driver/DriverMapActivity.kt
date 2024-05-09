@@ -297,6 +297,7 @@ class DriverMapActivity : AppCompatActivity(), OnMapReadyCallback {
 
                 // Open complete order activity
                 val intent = Intent(this, CompleteOrderActivity::class.java)
+                intent.putExtra("booking_id", booking.id)
                 startCompleteOrderForResult.launch(intent)
 
                 // Change to default status
@@ -547,7 +548,6 @@ class DriverMapActivity : AppCompatActivity(), OnMapReadyCallback {
                         ).show()
                     }
                 })
-
         }
 
         findViewById<Button>(R.id.disconnect_btn).setOnClickListener {
@@ -629,6 +629,7 @@ class DriverMapActivity : AppCompatActivity(), OnMapReadyCallback {
             currentLocation = LatLng(
                 locationResult.lastLocation!!.latitude, locationResult.lastLocation!!.longitude
             )
+            Log.i("DEBUG", "callback")
 
 //            currentLocationMarker?.position = currentLocation
             // webSocket.updateLocation(currentLocation.latitude, currentLocation.longitude)
@@ -691,7 +692,9 @@ class DriverMapActivity : AppCompatActivity(), OnMapReadyCallback {
 //                        )
                         webSocket.updateLocation(currentLocation.latitude, currentLocation.longitude)
                         centreCameraOnLocation(currentLocation)
-                        centreCameraOnLocation(currentLocation)
+                    } else {
+                        val defaultLocation = LatLng(15.941288938934974, 107.7343606079183)
+                        mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(defaultLocation, 5f))
                     }
                 }
             }

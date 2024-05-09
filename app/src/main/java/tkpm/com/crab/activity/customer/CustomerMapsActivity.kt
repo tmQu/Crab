@@ -763,8 +763,13 @@ class CustomerMapsActivity : AppCompatActivity(), OnMapReadyCallback {
 
     fun showTheBottomFinishTrip()
     {
-
-
+        // Set onClick for rating button
+        findViewById<Button>(R.id.bottom_finish_trip_rating).setOnClickListener {
+            val intent = Intent(this, CustomerRatingActivity::class.java)
+            intent.putExtra("booking_id", booking_id)
+            startActivity(intent)
+            finish()
+        }
     }
 
     fun getDesAddress(result: String?) {

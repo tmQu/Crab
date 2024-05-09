@@ -3,12 +3,14 @@ package tkpm.com.crab.activity.authentication.phone
 import android.Manifest
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.os.Build
 import android.os.Bundle
 import android.util.Log
 import android.view.View.NOT_FOCUSABLE
 import android.view.inputmethod.InputMethodManager
 import android.widget.TextView
 import android.widget.Toast
+import androidx.annotation.RequiresApi
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
 import com.google.android.material.button.MaterialButton
@@ -66,7 +68,7 @@ class PhoneLoginActivity : AppCompatActivity() {
         val imm = getSystemService(INPUT_METHOD_SERVICE) as InputMethodManager
         imm.showSoftInput(phoneEdt.editText, InputMethodManager.SHOW_IMPLICIT)
 
-        checkLocationPermissions()
+        checkPermissions()
     }
 
     private fun binding()
@@ -195,11 +197,13 @@ class PhoneLoginActivity : AppCompatActivity() {
             }
     }
 
-    private fun checkLocationPermissions() {
+    private fun checkPermissions() {
         if (ContextCompat.checkSelfPermission(
                 this, Manifest.permission.ACCESS_FINE_LOCATION
             ) == PackageManager.PERMISSION_GRANTED && ContextCompat.checkSelfPermission(
                 this, Manifest.permission.ACCESS_COARSE_LOCATION
+            ) == PackageManager.PERMISSION_GRANTED && ContextCompat.checkSelfPermission(
+                this, Manifest.permission.POST_NOTIFICATIONS
             ) == PackageManager.PERMISSION_GRANTED
         ) {
             Log.d(TAG, "Permission granted")
@@ -207,7 +211,8 @@ class PhoneLoginActivity : AppCompatActivity() {
             requestPermissions(
                 arrayOf(
                     Manifest.permission.ACCESS_FINE_LOCATION,
-                    Manifest.permission.ACCESS_COARSE_LOCATION
+                    Manifest.permission.ACCESS_COARSE_LOCATION,
+                    Manifest.permission.POST_NOTIFICATIONS
                 ), REQUEST_CODE_PERMISSION
             )
         }
