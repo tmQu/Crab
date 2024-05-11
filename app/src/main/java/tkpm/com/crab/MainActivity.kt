@@ -2,8 +2,6 @@ package tkpm.com.crab
 
 import android.content.Intent
 import android.os.Bundle
-import android.os.Handler
-import android.os.Looper
 import android.util.Log
 import android.view.animation.AnimationUtils
 import android.widget.ImageView
@@ -19,7 +17,6 @@ import com.google.gson.JsonObject
 import tkpm.com.crab.activity.UpdateInfoActivity
 import tkpm.com.crab.activity.authentication.phone.PhoneLoginActivity
 import tkpm.com.crab.activity.customer.CustomerMapsActivity
-import tkpm.com.crab.activity.customer.CustomerRatingActivity
 import tkpm.com.crab.activity.driver.DriverMapActivity
 import tkpm.com.crab.api.APICallback
 import tkpm.com.crab.api.APIService
@@ -57,31 +54,30 @@ class MainActivity : AppCompatActivity() {
         }
 
 //        Handler(Looper.getMainLooper()).postDelayed({
-            // Check if user login or not
-            // If user not login, redirect to login page
-            if (CredentialService().get() == "") {
-                val intent = Intent(this@MainActivity, PhoneLoginActivity::class.java)
+        // Check if user login or not
+        // If user not login, redirect to login page
+        if (CredentialService().get() == "") {
+            val intent = Intent(this@MainActivity, PhoneLoginActivity::class.java)
+            startActivity(intent)
+            finish()
+        } else {
+            // If user login, redirect to update info page if user is new user
+            val intent =
+                if (CredentialService().isNewUser())
+                    Intent(this@MainActivity, UpdateInfoActivity::class.java)
+                else {
+                    if (CredentialService().getAll().role == "driver")
+                        Intent(this@MainActivity, DriverMapActivity::class.java)
+                    else
+                        Intent(this@MainActivity, CustomerMapsActivity::class.java)
+                }
+            FirebaseMessaging.getInstance().token.addOnCompleteListener {
+                sendRegistrationToServer(it.result.toString())
+                intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
                 startActivity(intent)
                 finish()
-            } else {
-                // If user login, redirect to update info page if user is new user
-                val intent =
-                    if (CredentialService().isNewUser())
-                        Intent(this@MainActivity, UpdateInfoActivity::class.java)
-                    else
-                    {
-                        if(CredentialService().getAll().role == "driver")
-                            Intent(this@MainActivity, DriverMapActivity::class.java)
-                        else
-                            Intent(this@MainActivity, CustomerMapsActivity::class.java)
-                    }
-                FirebaseMessaging.getInstance().token.addOnCompleteListener {
-                    sendRegistrationToServer(it.result.toString())
-                    intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
-                    startActivity(intent)
-                    finish()
-                }
             }
+        }
 //        }, 1500)
     }
 
@@ -91,13 +87,13 @@ class MainActivity : AppCompatActivity() {
         obj.addProperty("user", CredentialService().getAll().id)
         obj.addProperty("token", token)
 
-        APIService().doPost<Any>("notification/update-token", obj,  object : APICallback<Any> {
-            override fun onSuccess(result: Any) {
-                Log.i("Notification", "result: $result")
+        APIService().doPost<Any>("notification/update-token", obj, object : APICallback<Any> {
+            override fun onSuccess(data: Any) {
+                Log.i("Notification", "result: $data")
             }
 
-            override fun onError(t: Throwable) {
-                Log.i("Notification", "result: ${t.message}")
+            override fun onError(error: Throwable) {
+                Log.i("Notification", "result: ${error.message}")
 
             }
         })

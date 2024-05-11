@@ -2,8 +2,10 @@ package tkpm.com.crab.activity.driver
 
 import android.Manifest
 import android.app.Activity
+import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.content.res.Resources
 import android.net.Uri
 import android.os.Bundle
 import android.os.Looper
@@ -43,13 +45,11 @@ import com.google.android.material.sidesheet.SideSheetBehavior
 import com.google.firebase.auth.FirebaseAuth
 import com.google.gson.Gson
 import com.google.gson.JsonObject
-import com.google.gson.annotations.SerializedName
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.Response
 import okhttp3.WebSocketListener
 import okio.ByteString
-import org.json.JSONObject
 import tkpm.com.crab.BuildConfig
 import tkpm.com.crab.MainActivity
 import tkpm.com.crab.R
@@ -64,8 +64,6 @@ import tkpm.com.crab.objects.Booking
 import tkpm.com.crab.objects.Vehicle
 import tkpm.com.crab.utils.DirectionRequest
 import tkpm.com.crab.utils.PriceDisplay
-
-
 
 
 class DriverMapActivity : AppCompatActivity(), OnMapReadyCallback {
@@ -99,7 +97,7 @@ class DriverMapActivity : AppCompatActivity(), OnMapReadyCallback {
 
     private lateinit var currentLocation: LatLng
 
-//    private var currentLocationMarker: Marker? = null
+    //    private var currentLocationMarker: Marker? = null
     private var destinationMarker: Marker? = null
     private var pickupMarker: Marker? = null
 
@@ -116,74 +114,80 @@ class DriverMapActivity : AppCompatActivity(), OnMapReadyCallback {
 
     private lateinit var webSocket: WebSocket
 
-    private val startCompleteOrderForResult = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
-        if (result.resultCode == Activity.RESULT_OK) {
-            // Handle the returned result
-            // Close all fragments and back to default fragment to wait for new booking
-            driverStatus = ONLINE
-            webSocket.connectWebSocket(BuildConfig.BASE_URL_WS)
-            webSocket.driverOnline()
-            webSocket.updateVehicle(vehicleType)
-            webSocket.updateLocation(
-                currentLocation.latitude, currentLocation.longitude
-            )
-            handleDriverStatus()
-            clearLines()
-            clearMarkers()
+    private val startCompleteOrderForResult =
+        registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
+            if (result.resultCode == Activity.RESULT_OK) {
+                // Handle the returned result
+                // Close all fragments and back to default fragment to wait for new booking
+                driverStatus = ONLINE
+                webSocket.connectWebSocket(BuildConfig.BASE_URL_WS)
+                webSocket.driverOnline()
+                webSocket.updateVehicle(vehicleType)
+                webSocket.updateLocation(
+                    currentLocation.latitude, currentLocation.longitude
+                )
+                handleDriverStatus()
+                clearLines()
+                clearMarkers()
 
-            // Clear the current booking
-            currentBooking = null
+                // Clear the current booking
+                currentBooking = null
+            }
+
+            if (result.resultCode == Activity.RESULT_CANCELED) {
+                // Handle the cancelled result
+                // Close all fragments, back to default fragment and set the driver status to offline
+                driverStatus = OFFLINE
+                webSocket.driverOffline()
+                webSocket.closeWebSocket()
+                handleDriverStatus()
+
+                // Clear the current booking
+                currentBooking = null
+
+                // Clear the map
+                clearLines()
+                clearMarkers()
+            }
         }
 
-        if (result.resultCode == Activity.RESULT_CANCELED) {
-            // Handle the cancelled result
-            // Close all fragments, back to default fragment and set the driver status to offline
-            driverStatus = OFFLINE
-            webSocket.driverOffline()
-            webSocket.closeWebSocket()
-            handleDriverStatus()
-
-            // Clear the current booking
-            currentBooking = null
-
-            // Clear the map
-            clearLines()
-            clearMarkers()
-        }
-    }
     private fun getBooking() {
         val user = CredentialService().getAll()
         val obj = JsonObject()
         obj.addProperty("id", user.id)
         obj.addProperty("role", user.role)
-        APIService().doPost<Booking>("bookings/check-progress-booking", obj,object : APICallback<Any> {
-            override fun onSuccess(result: Any) {
-                currentBooking = result as Booking
-                driverStatus = BUSY
-                vehicleType = currentBooking?.vehicle  ?: ""
-                when(currentBooking?.status)
-                {
-                    "accepted" -> {
-                        tripStatus = DRIVER_COMING
-                        handleDriverStatus()
+        APIService().doPost<Booking>(
+            "bookings/check-progress-booking",
+            obj,
+            object : APICallback<Any> {
+                override fun onSuccess(data: Any) {
+                    currentBooking = data as Booking
+                    driverStatus = BUSY
+                    vehicleType = currentBooking?.vehicle ?: ""
+                    when (currentBooking?.status) {
+                        "accepted" -> {
+                            tripStatus = DRIVER_COMING
+                            handleDriverStatus()
+                        }
+
+                        "arrived-at-pick-up" -> {
+                            tripStatus = DRIVER_ARRIVED
+                            handleDriverStatus()
+                        }
+
+                        "pick-up" -> {
+                            tripStatus = CustomerMapsActivity.PICK_UP
+                            handleDriverStatus()
+                        }
                     }
-                    "arrived-at-pick-up" -> {
-                        tripStatus = DRIVER_ARRIVED
-                        handleDriverStatus()
-                    }
-                    "pick-up" -> {
-                        tripStatus = CustomerMapsActivity.PICK_UP
-                        handleDriverStatus()
-                    }
+                    getDeviceLocation()
                 }
-                getDeviceLocation()
-            }
 
-            override fun onError(error: Throwable) {
-                Log.e("API_SERVICE", "${error.message}")
+                override fun onError(error: Throwable) {
+                    Log.e("API_SERVICE", "${error.message}")
 
-            }
-        })
+                }
+            })
     }
 
     private fun getDeviceLocation() {
@@ -225,8 +229,7 @@ class DriverMapActivity : AppCompatActivity(), OnMapReadyCallback {
         serviceName.text = booking.service
         address.text = booking.info.destination.address
 
-        if (newBooking)
-        {
+        if (newBooking) {
             tripStatus = WAIT_DRIVER
             getDirection(
                 LatLng(
@@ -245,7 +248,8 @@ class DriverMapActivity : AppCompatActivity(), OnMapReadyCallback {
                         booking.info.pickup.location.coordinates[1],
                         booking.info.pickup.location.coordinates[0]
                     )
-                ).title("Pickup Location").icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_AZURE))
+                ).title("Pickup Location")
+                    .icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_AZURE))
             )
             destinationMarker = mMap.addMarker(
                 MarkerOptions().position(
@@ -265,7 +269,12 @@ class DriverMapActivity : AppCompatActivity(), OnMapReadyCallback {
             drawDriverToPickup(booking)
             tripStatus = DRIVER_COMING
             handleTripStatus(booking, btnStep, startBtnGroup)
-            updateBookingStatusWithLatLng(booking.id, "accepted", currentLocation.latitude, currentLocation.longitude)
+            updateBookingStatusWithLatLng(
+                booking.id,
+                "accepted",
+                currentLocation.latitude,
+                currentLocation.longitude
+            )
         }
         findViewById<Button>(R.id.reject_btn).setOnClickListener {
             webSocket.rejectBooking(booking.id)
@@ -281,13 +290,11 @@ class DriverMapActivity : AppCompatActivity(), OnMapReadyCallback {
         handleTripStatus(booking, btnStep, startBtnGroup)
 
         btnStep.setOnClickListener {
-            if (tripStatus == DRIVER_COMING)
-            {
+            if (tripStatus == DRIVER_COMING) {
                 tripStatus = DRIVER_ARRIVED
                 updateBookingStatus(booking.id, "arrived-at-pick-up")
                 btnStep.text = "Đã đón"
-            }
-            else if(tripStatus == DRIVER_ARRIVED) {
+            } else if (tripStatus == DRIVER_ARRIVED) {
                 drawPickUpToDes(booking)
                 tripStatus = PICK_UP
                 updateBookingStatus(booking.id, "pick-up")
@@ -312,10 +319,8 @@ class DriverMapActivity : AppCompatActivity(), OnMapReadyCallback {
         }
     }
 
-    private fun handleTripStatus(booking: Booking, btnStep: Button, startBtnGroup: LinearLayout)
-    {
-        when(tripStatus)
-        {
+    private fun handleTripStatus(booking: Booking, btnStep: Button, startBtnGroup: LinearLayout) {
+        when (tripStatus) {
             WAIT_DRIVER -> {
                 btnStep.visibility = View.GONE
                 startBtnGroup.visibility = View.VISIBLE
@@ -350,8 +355,8 @@ class DriverMapActivity : AppCompatActivity(), OnMapReadyCallback {
             }
         }
     }
-    private fun drawPickUpToDes(booking: Booking)
-    {
+
+    private fun drawPickUpToDes(booking: Booking) {
         getDirection(
             LatLng(
                 booking.info.pickup.location.coordinates[1],
@@ -368,7 +373,8 @@ class DriverMapActivity : AppCompatActivity(), OnMapReadyCallback {
                     booking.info.pickup.location.coordinates[1],
                     booking.info.pickup.location.coordinates[0]
                 )
-            ).title("Pickup Location").icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_AZURE))
+            ).title("Pickup Location")
+                .icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_AZURE))
         )
 
         destinationMarker = mMap.addMarker(
@@ -381,8 +387,7 @@ class DriverMapActivity : AppCompatActivity(), OnMapReadyCallback {
         )
     }
 
-    private fun drawDriverToPickup(booking: Booking)
-    {
+    private fun drawDriverToPickup(booking: Booking) {
         getDirection(
             LatLng(currentLocation.latitude, currentLocation.longitude), LatLng(
                 booking.info.pickup.location.coordinates[1],
@@ -396,11 +401,17 @@ class DriverMapActivity : AppCompatActivity(), OnMapReadyCallback {
                     booking.info.pickup.location.coordinates[1],
                     booking.info.pickup.location.coordinates[0]
                 )
-            ).title("Pickup Location").icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_AZURE))
+            ).title("Pickup Location")
+                .icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_AZURE))
         )
     }
 
-    private fun updateBookingStatusWithLatLng(bookingId: String, status: String, lat: Double = 0.0, lng: Double = 0.0) {
+    private fun updateBookingStatusWithLatLng(
+        bookingId: String,
+        status: String,
+        lat: Double = 0.0,
+        lng: Double = 0.0
+    ) {
         val driverId = CredentialService().getAll().id
         val obj = JsonObject()
         obj.addProperty("id", bookingId)
@@ -473,6 +484,44 @@ class DriverMapActivity : AppCompatActivity(), OnMapReadyCallback {
             bottomConnect.visibility = View.GONE
             bottomFunctionDriver.state = BottomSheetBehavior.STATE_EXPANDED
         }
+    }
+
+    override fun onAttachedToWindow() {
+        super.onAttachedToWindow()
+
+        fun getNavBarHeight(context: Context): Int {
+            val resources: Resources = context.resources
+            val resourceId = resources.getIdentifier("navigation_bar_height", "dimen", "android")
+            if (resourceId > 0) {
+                Log.i(
+                    "DriverMapActivity",
+                    "NavBar height: ${resources.getDimensionPixelSize(resourceId)}"
+                )
+                return (resources.getDimensionPixelSize(resourceId) * 1.25).toInt()
+            }
+            return 0
+        }
+
+        findViewById<ConstraintLayout>(R.id.driver_function_card).setPadding(
+            0,
+            0,
+            0,
+            getNavBarHeight(this)
+        )
+
+        findViewById<LinearLayout>(R.id.connection_bottom).setPadding(
+            0,
+            0,
+            0,
+            getNavBarHeight(this)
+        )
+
+        findViewById<LinearLayout>(R.id.disconnect_bottom).setPadding(
+            0,
+            0,
+            0,
+            getNavBarHeight(this)
+        )
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -601,7 +650,7 @@ class DriverMapActivity : AppCompatActivity(), OnMapReadyCallback {
         }
 
         // Set function for here button
-        findViewById<ImageButton>(R.id.here_btn).setOnClickListener{
+        findViewById<ImageButton>(R.id.here_btn).setOnClickListener {
             // Zoom in current location if available
             locationProviderClient = LocationServices.getFusedLocationProviderClient(this)
 
@@ -690,7 +739,10 @@ class DriverMapActivity : AppCompatActivity(), OnMapReadyCallback {
 //                        currentLocationMarker = mMap.addMarker(
 //                            MarkerOptions().position(currentLocation).title("Current Location")
 //                        )
-                        webSocket.updateLocation(currentLocation.latitude, currentLocation.longitude)
+                        webSocket.updateLocation(
+                            currentLocation.latitude,
+                            currentLocation.longitude
+                        )
                         centreCameraOnLocation(currentLocation)
                     } else {
                         val defaultLocation = LatLng(15.941288938934974, 107.7343606079183)
