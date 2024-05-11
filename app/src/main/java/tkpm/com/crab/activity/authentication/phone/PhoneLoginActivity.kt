@@ -1,17 +1,20 @@
 package tkpm.com.crab.activity.authentication.phone
 
+import android.Manifest
 import android.content.Intent
-import androidx.appcompat.app.AppCompatActivity
+import android.content.pm.PackageManager
+import android.os.Build
 import android.os.Bundle
 import android.util.Log
 import android.view.View.NOT_FOCUSABLE
 import android.view.inputmethod.InputMethodManager
-import android.widget.Button
 import android.widget.TextView
 import android.widget.Toast
+import androidx.annotation.RequiresApi
+import androidx.appcompat.app.AppCompatActivity
+import androidx.core.content.ContextCompat
 import com.google.android.material.button.MaterialButton
 import com.google.android.material.textfield.TextInputLayout
-import com.google.firebase.Firebase
 import com.google.firebase.FirebaseException
 import com.google.firebase.FirebaseTooManyRequestsException
 import com.google.firebase.auth.FirebaseAuth
@@ -20,13 +23,12 @@ import com.google.firebase.auth.FirebaseAuthMissingActivityForRecaptchaException
 import com.google.firebase.auth.PhoneAuthCredential
 import com.google.firebase.auth.PhoneAuthOptions
 import com.google.firebase.auth.PhoneAuthProvider
-import com.google.firebase.auth.auth
 import tkpm.com.crab.R
 import tkpm.com.crab.dialog.LoadingDialog
 import java.util.concurrent.TimeUnit
 
 class PhoneLoginActivity : AppCompatActivity() {
-
+    val REQUEST_CODE_PERMISSION = 83
     private val TAG = "PhoneLoginActivity"
     private lateinit var auth: FirebaseAuth
 
@@ -43,7 +45,6 @@ class PhoneLoginActivity : AppCompatActivity() {
         setContentView(R.layout.activity_phone_login)
 
         binding()
-
 
         countryCodeEdt.editText?.setText("+84")
         countryCodeEdt.focusable =  NOT_FOCUSABLE
@@ -67,6 +68,7 @@ class PhoneLoginActivity : AppCompatActivity() {
         val imm = getSystemService(INPUT_METHOD_SERVICE) as InputMethodManager
         imm.showSoftInput(phoneEdt.editText, InputMethodManager.SHOW_IMPLICIT)
 
+        checkPermissions()
     }
 
     private fun binding()
@@ -143,6 +145,12 @@ class PhoneLoginActivity : AppCompatActivity() {
                     }
 
                     // Show a message and update the UI
+                    progressDialog.dismissDialog()
+                    Toast.makeText(
+                        this@PhoneLoginActivity,
+                        "Failed to verify your phone number",
+                        Toast.LENGTH_SHORT
+                    ).show()
                 }
 
                 override fun onCodeSent(
@@ -189,6 +197,41 @@ class PhoneLoginActivity : AppCompatActivity() {
             }
     }
 
+    private fun checkPermissions() {
+        if (ContextCompat.checkSelfPermission(
+                this, Manifest.permission.ACCESS_FINE_LOCATION
+            ) == PackageManager.PERMISSION_GRANTED && ContextCompat.checkSelfPermission(
+                this, Manifest.permission.ACCESS_COARSE_LOCATION
+            ) == PackageManager.PERMISSION_GRANTED && ContextCompat.checkSelfPermission(
+                this, Manifest.permission.POST_NOTIFICATIONS
+            ) == PackageManager.PERMISSION_GRANTED
+        ) {
+            Log.d(TAG, "Permission granted")
+        } else {
+            requestPermissions(
+                arrayOf(
+                    Manifest.permission.ACCESS_FINE_LOCATION,
+                    Manifest.permission.ACCESS_COARSE_LOCATION,
+                    Manifest.permission.POST_NOTIFICATIONS
+                ), REQUEST_CODE_PERMISSION
+            )
+        }
+    }
 
-
+    override fun onRequestPermissionsResult(
+        requestCode: Int, permissions: Array<out String>, grantResults: IntArray
+    ) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
+        if (requestCode == REQUEST_CODE_PERMISSION) {
+            if (grantResults.isNotEmpty()) {
+                for (result in grantResults) {
+                    if (result != PackageManager.PERMISSION_GRANTED) {
+                        Log.d(TAG, "Permission denied")
+                        return
+                    }
+                }
+                Log.d(TAG, "Permission granted")
+            }
+        }
+    }
 }

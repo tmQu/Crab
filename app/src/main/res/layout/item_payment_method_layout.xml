@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content">
+
+    <ImageView
+        android:id="@+id/item_payment_method_icon"
+        android:layout_width="48dp"
+        android:layout_height="48dp"
+        android:layout_marginStart="16dp"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="0.0"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        app:srcCompat="@drawable/ic_visa" />
+
+    <TextView
+        android:id="@+id/item_payment_method_name"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="16dp"
+        android:text="Visa"
+        app:layout_constraintBottom_toBottomOf="@+id/item_payment_method_icon"
+        app:layout_constraintStart_toEndOf="@+id/item_payment_method_icon"
+        app:layout_constraintTop_toTopOf="@+id/item_payment_method_icon" />
+
+    <TextView
+        android:id="@+id/item_payment_method_number"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginEnd="16dp"
+        android:text="*0000"
+        app:layout_constraintBottom_toBottomOf="@+id/item_payment_method_name"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintTop_toTopOf="@+id/item_payment_method_name" />
+</androidx.constraintlayout.widget.ConstraintLayout>

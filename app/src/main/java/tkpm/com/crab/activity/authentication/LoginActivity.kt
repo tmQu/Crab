@@ -11,13 +11,8 @@ import tkpm.com.crab.R
 class LoginActivity : AppCompatActivity() {
     private val TAG = "LoginActivity"
 
-
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_login)
-
-
     }
-
-
 }

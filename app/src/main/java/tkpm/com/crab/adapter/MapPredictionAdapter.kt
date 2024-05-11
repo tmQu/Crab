@@ -34,7 +34,7 @@ class MapPredictionAdapter(
     context: Context?,
     mResult: List<AutocompletePrediction> = listOf()
 ) : ArrayAdapter<AutocompletePrediction>(
-    context!!, R.layout.map_prediction_row, R.id.text1, mResult
+    context!!, R.layout.item_map_prediction_row_layout, R.id.text1, mResult
 ), Filterable{
 
     private var mResultList: List<AutocompletePrediction>? = null
@@ -54,7 +54,8 @@ class MapPredictionAdapter(
     }
 
     override fun getView(position: Int, convertView: View?, parent: ViewGroup): View {
-        val row = LayoutInflater.from(parent.context).inflate(R.layout.map_prediction_row, parent, false)
+        val row = LayoutInflater.from(parent.context)
+            .inflate(R.layout.item_map_prediction_row_layout, parent, false)
         val item = getItem(position)
         val textView1 = row.findViewById<View>(R.id.text1) as TextView
         val textView2 = row.findViewById<View>(R.id.text2) as TextView
@@ -66,7 +67,7 @@ class MapPredictionAdapter(
 
     override fun getFilter(): Filter {
         return object : Filter() {
-            protected override fun performFiltering(constraint: CharSequence?): FilterResults? {
+            override fun performFiltering(constraint: CharSequence?): FilterResults {
                 val results = FilterResults()
 
                 // We need a separate list to store the results, since
@@ -84,7 +85,7 @@ class MapPredictionAdapter(
                 return results
             }
 
-            protected override fun publishResults(constraint: CharSequence?, results: FilterResults?) {
+            override fun publishResults(constraint: CharSequence?, results: FilterResults?) {
                 if (results != null && results.count > 0) {
                     // The API returned at least one result, update the data.
                     mResultList = results.values as List<AutocompletePrediction>
@@ -96,15 +97,14 @@ class MapPredictionAdapter(
             }
 
             override fun convertResultToString(resultValue: Any?): CharSequence? {
-                // Override this method to display a readable result in the AutocompleteTextView
-                // when clicked.
-//                return if (resultValue is AutocompletePrediction) {
-////                    resultValue.getFullText(null)
+//                 Override this method to display a readable result in the AutocompleteTextView
+//                 when clicked.
+                return if (resultValue is AutocompletePrediction) {
+                    resultValue.getFullText(null)
 //                    return null
-//                } else {
-//                    //super.convertResultToString(resultValue)
-//                    return null
-//                }
+                } else {
+                    super.convertResultToString(resultValue)
+                }
                 return null
             }
         }

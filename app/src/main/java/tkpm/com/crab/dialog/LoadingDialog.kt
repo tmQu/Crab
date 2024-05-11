@@ -2,7 +2,6 @@ package tkpm.com.crab.dialog
 
 import android.app.Activity
 import android.app.AlertDialog
-import android.app.Dialog
 import tkpm.com.crab.R
 
 class LoadingDialog(val activity: Activity){
@@ -15,7 +14,7 @@ class LoadingDialog(val activity: Activity){
         dialogBuilder.setView(inflater.inflate(R.layout.loading_dialog, null))
         dialogBuilder.setCancelable(false)
         dialog = dialogBuilder.create()
-        dialog.window?.setBackgroundDrawableResource(android.R.color.transparent);
+        dialog.window?.setBackgroundDrawableResource(android.R.color.transparent)
         dialog.show()
 
     }
