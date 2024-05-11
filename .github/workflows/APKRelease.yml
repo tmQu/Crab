@@ -1,0 +1,63 @@
+name: Build APK -> Release
+
+env:
+  # The name of the main module repository
+  main_project_module: app
+
+  # The name of the Play Store
+  playstore_name: Crab
+
+on:
+  push:
+    branches:
+      - 'main'
+
+  # Allows you to run this workflow manually from the Actions tab
+  workflow_dispatch:
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Get current datetime in GMT+7
+        run: echo "date_time=$(TZ='Asia/Ho_Chi_Minh' date +'%d-%m-%Y %H:%M:%S')" >> $GITHUB_ENV
+
+      # Ref: https://github.com/orgs/community/discussions/24928
+      - name: Get SECRET_PROPS from secrets
+        run: |
+          cat << EOF > ./secrets.properties
+          ${{ secrets.SECRET_PROPS }}
+          EOF
+      
+      - name: Set Up JDK
+        uses: actions/setup-java@v3
+        with:
+          distribution: 'zulu' # See 'Supported distributions' for available options
+          java-version: '17'
+          cache: 'gradle'
+
+      - name: Change wrapper permissions
+        run: chmod +x ./gradlew
+
+      # Run Tests Build
+      - name: Run gradle tests
+        run: ./gradlew test
+
+      # Run Build Project
+      - name: Build gradle project
+        run: ./gradlew build
+
+      # Upload APK to release
+      - name: Upload APK to release
+        uses: svenstaro/upload-release-action@v2
+        with:
+          repo_token: ${{ secrets.SECRET_TOKEN }}
+          file: ${{ env.main_project_module }}/build/outputs/apk/release/app-release-unsigned.apk
+          asset_name: ${{ env.playstore_name }}.apk
+          tag: ${{ secrets.TAG }}
+          overwrite: true
+          body: "Build date: ${{ env.date_time }}"
