@@ -151,6 +151,9 @@ class CustomerMapsActivity : AppCompatActivity(), OnMapReadyCallback {
     private var currentMarker: Marker? = null
     private var driverMarker: Marker? = null
 
+    private var suggestionLat = 0.0
+    private var suggestionLng = 0.0
+
     private val polylines: MutableList<Polyline> = ArrayList()
 
     private var distance = 0L
@@ -207,6 +210,14 @@ class CustomerMapsActivity : AppCompatActivity(), OnMapReadyCallback {
         registerReceiver(myBroadcastReceiver, IntentFilter(NOTIFICATION.ACTION_NAME), RECEIVER_EXPORTED)
 
         checkLocationPermissions()
+
+        val latSuggest = intent.getDoubleExtra("lat", 0.0)
+        val longSuggest = intent.getDoubleExtra("long", 0.0)
+        if(latSuggest != 0.0 && longSuggest != 0.0)
+        {
+            suggestionLat = latSuggest
+            suggestionLng = longSuggest
+        }
 
         // Get current booking
 
@@ -421,6 +432,13 @@ class CustomerMapsActivity : AppCompatActivity(), OnMapReadyCallback {
             }
 
             override fun onError(error: Throwable) {
+                if(suggestionLat != 0.0 && suggestionLng != 0.0)
+                {
+                    val suggestionLatLng = LatLng(suggestionLat, suggestionLng)
+                    setDestinationLocationMarker(suggestionLatLng)
+                    moveCamera(suggestionLatLng, 15f)
+                    getDirection()
+                }
                 Log.e("API_SERVICE", "${error.message}")
 
             }
@@ -431,10 +449,6 @@ class CustomerMapsActivity : AppCompatActivity(), OnMapReadyCallback {
         val user = FirebaseAuth.getInstance().currentUser
         val phone = user?.phoneNumber ?: ""
 
-        if (currentMarker == null || destinationMarker == null || currentAddress.isEmpty() || destinationAddress.isEmpty() || vehicleType == null) {
-            Toast.makeText(this, "Do please, make your choices.", Toast.LENGTH_SHORT).show()
-            return
-        }
 
         val data = BookingRequest(
             currentMarker!!.position.latitude,
@@ -485,6 +499,7 @@ class CustomerMapsActivity : AppCompatActivity(), OnMapReadyCallback {
                     .color(Color.parseColor("#05b1fb")) // Google maps blue color
                     .geodesic(true)
             )
+
         } catch (e: JSONException) {
         }
     }
@@ -635,12 +650,19 @@ class CustomerMapsActivity : AppCompatActivity(), OnMapReadyCallback {
         val payBtn = findViewById<Button>(R.id.pay_now)
 
         payBtn.setOnClickListener {
-            createRequest()
-            tripStatus = WAIT_DRIVER
-            handleBottomSheet()
+            if (currentMarker == null || destinationMarker == null || currentAddress.isEmpty() || destinationAddress.isEmpty() || vehicleType == null) {
+                Toast.makeText(this, "Do please, make your choices.", Toast.LENGTH_SHORT).show()
+
+            }
+            else {
+                createRequest()
+                tripStatus = WAIT_DRIVER
+                handleBottomSheet()
+            }
+
         }
         val data = mapOf("distance" to distance / 1000)
-
+        vehicleType = null
         APIService().doPost<VehilceTypePriceResponse>(
             "fee/get-fee",
             data,
@@ -658,11 +680,12 @@ class CustomerMapsActivity : AppCompatActivity(), OnMapReadyCallback {
                     )
                 }
 
-            override fun onError(t: Throwable) {
-                Toast.makeText(this@CustomerMapsActivity, "Error: ${t.message}", Toast.LENGTH_SHORT).show()
-                Log.i("MapsActivity", t.message.toString())
-            }
-        })
+                override fun onError(t: Throwable) {
+                    Toast.makeText(this@CustomerMapsActivity, "Error: ${t.message}", Toast.LENGTH_SHORT).show()
+                    Log.i("MapsActivity", t.message.toString())
+                }
+            })
+
     }
 
     fun showTheBottomWaiting()
@@ -822,6 +845,12 @@ class CustomerMapsActivity : AppCompatActivity(), OnMapReadyCallback {
         clearLines()
         clearMarkers()
         autocomplete_addr.isEnabled = true
+        // Set onClick for rating button
+        findViewById<Button>(R.id.bottom_finish_trip_rating).setOnClickListener {
+            val intent = Intent(this, CustomerRatingActivity::class.java)
+            intent.putExtra("booking_id", booking_id)
+            startActivity(intent)
+        }
     }
 
     fun getDesAddress(result: String?) {
@@ -882,7 +911,7 @@ class CustomerMapsActivity : AppCompatActivity(), OnMapReadyCallback {
         val url =
             "https://maps.googleapis.com/maps/api/directions/json?origin=${origin?.latitude},${origin?.longitude}&destination=${destination?.latitude},${destination?.longitude}&key=${BuildConfig.MAPS_API_KEY}&mode=driving"
 
-        val directionRequest = DirectionRequest(this, url)
+        val directionRequest = DirectionRequest(mMap, origin!!, destination!!, polylines)
         directionRequest.execute()
 
     }

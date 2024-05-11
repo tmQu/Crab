@@ -24,7 +24,15 @@
             android:textSize="18sp"
             android:textIsSelectable="true"
             />
-
+        <TextView
+            android:id="@+id/suggestion_title"
+            android:layout_marginTop="5dp"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Một số địa điểm gợi ý khác"
+            android:textStyle="bold"
+            android:visibility="gone"
+            />
         <androidx.recyclerview.widget.RecyclerView
             android:id="@+id/suggestion"
             android:layout_width="280dp"

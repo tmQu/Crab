@@ -2,10 +2,12 @@ package tkpm.com.crab.activity.driver
 
 import android.Manifest
 import android.app.Activity
+import android.app.Dialog
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Bundle
+import android.os.Handler
 import android.os.Looper
 import android.util.Log
 import android.view.View
@@ -50,16 +52,20 @@ import okhttp3.Response
 import okhttp3.WebSocketListener
 import okio.ByteString
 import org.json.JSONObject
+import pl.droidsonroids.gif.GifDrawable
+import pl.droidsonroids.gif.GifImageView
 import tkpm.com.crab.BuildConfig
 import tkpm.com.crab.MainActivity
 import tkpm.com.crab.R
 import tkpm.com.crab.activity.ChangeInfoActivity
 import tkpm.com.crab.activity.HistoryActivity
 import tkpm.com.crab.activity.customer.CustomerMapsActivity
+import tkpm.com.crab.adapter.CustomWindowInfo
 import tkpm.com.crab.api.APICallback
 import tkpm.com.crab.api.APIService
 import tkpm.com.crab.credential_service.CredentialService
 import tkpm.com.crab.databinding.ActivityDriverMapsBinding
+import tkpm.com.crab.dialog.TimeOutDialog
 import tkpm.com.crab.objects.Booking
 import tkpm.com.crab.objects.Vehicle
 import tkpm.com.crab.utils.DirectionRequest
@@ -83,9 +89,23 @@ class DriverMapActivity : AppCompatActivity(), OnMapReadyCallback {
         const val FINISH_TRIP = 7
 
     }
-
+    private val handler = Handler(Looper.getMainLooper())
+    private val runnable = object: Runnable {
+        override fun run() {
+            Log.i("timeout", timeOut.toString())
+            findViewById<TextView>(R.id.timeout).text = "${timeOut}s"
+            timeOut -= 1
+            if (timeOut == 0) {
+                findViewById<LinearLayout>(R.id.timeout_group).visibility = View.GONE
+                bottomFunctionDriver.state = BottomSheetBehavior.STATE_HIDDEN
+                handler.removeCallbacksAndMessages(null)
+            }
+            else
+                handler.postDelayed(this, 1000)
+        }
+    }
     private var tripStatus = -1
-
+    private var timeOut = 0
     private lateinit var mMap: GoogleMap
     private lateinit var binding: ActivityDriverMapsBinding
 
@@ -102,7 +122,7 @@ class DriverMapActivity : AppCompatActivity(), OnMapReadyCallback {
 //    private var currentLocationMarker: Marker? = null
     private var destinationMarker: Marker? = null
     private var pickupMarker: Marker? = null
-
+    private var driverMarker: Marker?=null
     private lateinit var locationRequest: LocationRequest
 
 
@@ -216,7 +236,7 @@ class DriverMapActivity : AppCompatActivity(), OnMapReadyCallback {
         val priceView = findViewById<TextView>(R.id.price)
         val btnStep = findViewById<Button>(R.id.btn_step)
         val startBtnGroup = findViewById<LinearLayout>(R.id.starting_btn_group)
-
+        Log.i("timeout", "status " + bottomFunctionDriver.isHideable)
 
         btnStep.visibility = View.GONE
 
@@ -227,7 +247,7 @@ class DriverMapActivity : AppCompatActivity(), OnMapReadyCallback {
 
         if (newBooking)
         {
-            tripStatus = WAIT_DRIVER
+            tripStatus = -1
             getDirection(
                 LatLng(
                     booking.info.pickup.location.coordinates[1],
@@ -245,7 +265,7 @@ class DriverMapActivity : AppCompatActivity(), OnMapReadyCallback {
                         booking.info.pickup.location.coordinates[1],
                         booking.info.pickup.location.coordinates[0]
                     )
-                ).title("Pickup Location").icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_AZURE))
+                ).title("Pickup Location").icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_AZURE)).snippet(booking.info.pickup.address)
             )
             destinationMarker = mMap.addMarker(
                 MarkerOptions().position(
@@ -253,15 +273,15 @@ class DriverMapActivity : AppCompatActivity(), OnMapReadyCallback {
                         booking.info.destination.location.coordinates[1],
                         booking.info.destination.location.coordinates[0]
                     )
-                ).title("Destination Location")
+                ).title("Destination Location").snippet(booking.info.destination.address)
             )
         }
 
         findViewById<Button>(R.id.accept_btn).setOnClickListener {
+            handler.removeCallbacks(runnable)
             webSocket.acceptBooking(booking.id)
             startBtnGroup.visibility = View.GONE
             btnStep.visibility = View.VISIBLE
-
             drawDriverToPickup(booking)
             tripStatus = DRIVER_COMING
             handleTripStatus(booking, btnStep, startBtnGroup)
@@ -295,9 +315,7 @@ class DriverMapActivity : AppCompatActivity(), OnMapReadyCallback {
             } else if (tripStatus == PICK_UP) {
                 updateBookingStatus(booking.id, "completed")
 
-                // Open complete order activity
-                val intent = Intent(this, CompleteOrderActivity::class.java)
-                startCompleteOrderForResult.launch(intent)
+
 
                 // Change to default status
                 btnStep.text = "Đã tới"
@@ -313,6 +331,9 @@ class DriverMapActivity : AppCompatActivity(), OnMapReadyCallback {
 
     private fun handleTripStatus(booking: Booking, btnStep: Button, startBtnGroup: LinearLayout)
     {
+        val timeOutGroup = findViewById<LinearLayout>(R.id.timeout_group)
+        Log.i("timeout", "status " + tripStatus.toString())
+        timeOutGroup.visibility = View.GONE
         when(tripStatus)
         {
             WAIT_DRIVER -> {
@@ -347,6 +368,20 @@ class DriverMapActivity : AppCompatActivity(), OnMapReadyCallback {
                 btnStep.visibility = View.GONE
                 startBtnGroup.visibility = View.VISIBLE
             }
+            else -> {
+                if(timeOut != 0)
+                {
+                    Log.i("timeout", timeOut.toString())
+                    timeOutGroup.visibility = View.VISIBLE
+                    val gifDrawable = GifDrawable(resources, R.drawable.ic_wait)
+                    findViewById<GifImageView>(R.id.gif_timeout).setImageDrawable(gifDrawable)
+                    gifDrawable.start()
+                    Log.i("timeout", gifDrawable.duration.toString())
+
+                    handler.postDelayed(runnable, 1000)
+                }
+
+            }
         }
     }
     private fun drawPickUpToDes(booking: Booking)
@@ -367,7 +402,7 @@ class DriverMapActivity : AppCompatActivity(), OnMapReadyCallback {
                     booking.info.pickup.location.coordinates[1],
                     booking.info.pickup.location.coordinates[0]
                 )
-            ).title("Pickup Location").icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_AZURE))
+            ).title("Pickup Location").icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_AZURE)).snippet(booking.info.pickup.address)
         )
 
         destinationMarker = mMap.addMarker(
@@ -376,7 +411,7 @@ class DriverMapActivity : AppCompatActivity(), OnMapReadyCallback {
                     booking.info.destination.location.coordinates[1],
                     booking.info.destination.location.coordinates[0]
                 )
-            ).title("Destination Location")
+            ).title("Destination Location").snippet(booking.info.destination.address)
         )
     }
 
@@ -389,13 +424,18 @@ class DriverMapActivity : AppCompatActivity(), OnMapReadyCallback {
             ), true
         )
         clearMarkers()
+        driverMarker = mMap.addMarker(
+            MarkerOptions().position(
+                LatLng(currentLocation.latitude, currentLocation.longitude)
+            ).title("Your position").icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_GREEN))
+        )
         pickupMarker = mMap.addMarker(
             MarkerOptions().position(
                 LatLng(
                     booking.info.pickup.location.coordinates[1],
                     booking.info.pickup.location.coordinates[0]
                 )
-            ).title("Pickup Location").icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_AZURE))
+            ).title("Pickup Location").icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_AZURE)).snippet(booking.info.pickup.address)
         )
     }
 
@@ -425,6 +465,13 @@ class DriverMapActivity : AppCompatActivity(), OnMapReadyCallback {
             mapOf("id" to bookingId, "status" to status, "driver" to driverId),
             object : APICallback<Any> {
                 override fun onSuccess(data: Any) {
+                    // Open complete order activity
+                    if(tripStatus == FINISH_TRIP)
+                    {
+                        val intent = Intent(this@DriverMapActivity, CompleteOrderActivity::class.java)
+                        intent.putExtra("booking_id", currentBooking?.id)
+                        startCompleteOrderForResult.launch(intent)
+                    }
 
                 }
 
@@ -459,6 +506,7 @@ class DriverMapActivity : AppCompatActivity(), OnMapReadyCallback {
     }
 
     private fun handleDriverStatus() {
+        Log.i("timeout", "status driver" + driverStatus.toString())
         if (driverStatus == ONLINE) {
             bottomDisconnect.visibility = View.VISIBLE
             bottomConnect.visibility = View.GONE
@@ -471,6 +519,8 @@ class DriverMapActivity : AppCompatActivity(), OnMapReadyCallback {
             bottomDisconnect.visibility = View.GONE
             bottomConnect.visibility = View.GONE
             bottomFunctionDriver.state = BottomSheetBehavior.STATE_EXPANDED
+            BottomSheetBehavior.STATE_SETTLING
+            Log.i("timeout", "status ub " + bottomFunctionDriver.state)
         }
     }
 
@@ -489,12 +539,10 @@ class DriverMapActivity : AppCompatActivity(), OnMapReadyCallback {
         bottomFunctionDriver.isHideable = true
         bottomFunctionDriver.isDraggable = false
         bottomFunctionDriver.state = BottomSheetBehavior.STATE_HIDDEN
-
         bottomConnect = findViewById(R.id.connection_bottom)
         bottomDisconnect = findViewById(R.id.disconnect_bottom)
 
         webSocket = WebSocket(this)
-
         driverStatus = OFFLINE
         handleDriverStatus()
 
@@ -547,7 +595,6 @@ class DriverMapActivity : AppCompatActivity(), OnMapReadyCallback {
                         ).show()
                     }
                 })
-
         }
 
         findViewById<Button>(R.id.disconnect_btn).setOnClickListener {
@@ -629,6 +676,7 @@ class DriverMapActivity : AppCompatActivity(), OnMapReadyCallback {
             currentLocation = LatLng(
                 locationResult.lastLocation!!.latitude, locationResult.lastLocation!!.longitude
             )
+            Log.i("DEBUG", "callback")
 
 //            currentLocationMarker?.position = currentLocation
             // webSocket.updateLocation(currentLocation.latitude, currentLocation.longitude)
@@ -665,6 +713,8 @@ class DriverMapActivity : AppCompatActivity(), OnMapReadyCallback {
             return
         }
 
+        mMap.setInfoWindowAdapter(CustomWindowInfo(this))
+
         mMap.isMyLocationEnabled = true
         mMap.uiSettings.isMyLocationButtonEnabled = false
         mMap.uiSettings.isZoomControlsEnabled = false
@@ -690,7 +740,9 @@ class DriverMapActivity : AppCompatActivity(), OnMapReadyCallback {
 //                        )
                         webSocket.updateLocation(currentLocation.latitude, currentLocation.longitude)
                         centreCameraOnLocation(currentLocation)
-                        centreCameraOnLocation(currentLocation)
+                    } else {
+                        val defaultLocation = LatLng(15.941288938934974, 107.7343606079183)
+                        mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(defaultLocation, 5f))
                     }
             }
         }
@@ -738,6 +790,7 @@ class DriverMapActivity : AppCompatActivity(), OnMapReadyCallback {
 
     private fun clearMarkers() {
 //        currentLocationMarker?.remove()
+        driverMarker?.remove()
         destinationMarker?.remove()
         pickupMarker?.remove()
     }
@@ -772,7 +825,7 @@ class DriverMapActivity : AppCompatActivity(), OnMapReadyCallback {
         )
 
         internal class BookingRequest(
-            val event: String, val bookingId: String
+            val event: String, val bookingId: String, val timeOut: Int = 0
         )
 
         internal class BookingResponse(
@@ -803,12 +856,13 @@ class DriverMapActivity : AppCompatActivity(), OnMapReadyCallback {
                     // Show accept/reject buttons
                     // Send response to server
                     // Update UI
-
+                    activity.timeOut = bookingRequest.timeOut / 1000
                     activity.getBookingById(bookingRequest.bookingId)
 
-                } else if (bookingRequest.event == "bookingTimout") {
+                } else if (bookingRequest.event == "bookingTimeout") {
                     // Handle booking cancellation
-
+                    Log.i("timeout", "handle timeout")
+                    activity.handleTimeOut()
                 }
             }
 
@@ -919,6 +973,27 @@ class DriverMapActivity : AppCompatActivity(), OnMapReadyCallback {
         companion object {
             private const val TAG = "WebSocketManager"
         }
+    }
+
+    fun handleTimeOut() {
+        runOnUiThread{
+            driverStatus = OFFLINE
+            webSocket.driverOffline()
+            webSocket.closeWebSocket()
+            handleDriverStatus()
+
+            // Clear the current booking
+            currentBooking = null
+            Log.i("timeout", "handle timout funct")
+            // Clear the map
+            clearLines()
+            clearMarkers()
+
+            val timeOutDialog = TimeOutDialog()
+            timeOutDialog.show(supportFragmentManager, "timeout")
+        }
+
+
     }
 
 

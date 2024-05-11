@@ -11,11 +11,12 @@ import com.squareup.picasso.Picasso
 import tkpm.com.crab.R
 import tkpm.com.crab.objects.Suggestion
 
-class SuggestionAdapter(suggestionList: List<Suggestion>): RecyclerView.Adapter<SuggestionAdapter.ItemViewHolder>() {
+class SuggestionAdapter(suggestionList: List<Suggestion>, onClickItem: (Double, Double) -> Unit): RecyclerView.Adapter<SuggestionAdapter.ItemViewHolder>() {
     var suggestionList: List<Suggestion>
-
+    var onClickItem: (lat: Double, long: Double) -> Unit
     init {
         this.suggestionList = suggestionList
+        this.onClickItem = onClickItem
     }
 
     class ItemViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
@@ -33,6 +34,7 @@ class SuggestionAdapter(suggestionList: List<Suggestion>): RecyclerView.Adapter<
             rating = itemView.findViewById(R.id.suggestion_rating)
             userRatingsTotal = itemView.findViewById(R.id.suggestion_user_ratings_total)
             imageView = itemView.findViewById(R.id.suggestion_image)
+
         }
     }
 
@@ -48,7 +50,16 @@ class SuggestionAdapter(suggestionList: List<Suggestion>): RecyclerView.Adapter<
         holder.address.text = suggestion.address
         holder.rating.rating = suggestion.rating.toFloat()
         holder.userRatingsTotal.text = "Dựa trên  ${suggestion.user_ratings_total} đánh giá"
-        Picasso.get().load(suggestion.imageUrl).into(holder.imageView)
+        if(suggestion.imageUrl != "")
+            Picasso.get().load(suggestion.imageUrl).into(holder.imageView)
+        else {
+            Picasso.get().load(R.drawable.no_img).into(holder.imageView)
+        }
+
+        holder.itemView.setOnClickListener {
+            val suggestion = suggestionList[position]
+            onClickItem.invoke(suggestion.latitude, suggestion.longitude)
+        }
 
 
     }

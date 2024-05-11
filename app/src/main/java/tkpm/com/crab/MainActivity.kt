@@ -19,6 +19,7 @@ import com.google.gson.JsonObject
 import tkpm.com.crab.activity.UpdateInfoActivity
 import tkpm.com.crab.activity.authentication.phone.PhoneLoginActivity
 import tkpm.com.crab.activity.customer.CustomerMapsActivity
+import tkpm.com.crab.activity.customer.CustomerRatingActivity
 import tkpm.com.crab.activity.driver.DriverMapActivity
 import tkpm.com.crab.api.APICallback
 import tkpm.com.crab.api.APIService
@@ -55,7 +56,7 @@ class MainActivity : AppCompatActivity() {
             CredentialService().credentialValidation(this)
         }
 
-        Handler(Looper.getMainLooper()).postDelayed({
+//        Handler(Looper.getMainLooper()).postDelayed({
             // Check if user login or not
             // If user not login, redirect to login page
             if (CredentialService().get() == "") {
@@ -80,9 +81,8 @@ class MainActivity : AppCompatActivity() {
                     startActivity(intent)
                     finish()
                 }
-
             }
-        }, 1500)
+//        }, 1500)
     }
 
 

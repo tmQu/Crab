@@ -34,7 +34,7 @@ class SuggestionActivity : AppCompatActivity() {
         messageBox = findViewById(R.id.message_box)
         sendButton = findViewById(R.id.send_button)
 
-        messageAdapter = MessageAdapter(listMessage)
+        messageAdapter = MessageAdapter(listMessage, this)
         chatRv.adapter = messageAdapter
         chatRv.layoutManager = LinearLayoutManager(this, LinearLayoutManager.VERTICAL, false)
 
@@ -43,6 +43,7 @@ class SuggestionActivity : AppCompatActivity() {
 
             addToChat(Message(question, Message.SENT_BY_ME), Message.SENT_BY_ME)
             getSuggestion()
+
             messageBox.setText("")
 
         }
@@ -54,6 +55,8 @@ class SuggestionActivity : AppCompatActivity() {
         messageAdapter.notifyDataSetChanged()
         chatRv.smoothScrollToPosition(messageAdapter.itemCount)
     }
+
+
 
     private fun addResponse()
     {
@@ -86,7 +89,6 @@ class SuggestionActivity : AppCompatActivity() {
 //                    }
 //                ]
                 data as Message
-                Log.i("SuggestionActivity", "${data.message} ${data.listSuggestions[0].name}")
                 addToChat(data, Message.SENT_BY_CHATGPT)
 
             }
