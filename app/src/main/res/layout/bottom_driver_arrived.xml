@@ -19,7 +19,7 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content">
         <ImageView
-            android:id="@+id/driver_avatar"
+            android:id="@+id/driver_arrived_avatar"
             android:layout_width="50dp"
             android:layout_height="50dp"
             android:src="@drawable/ic_user"
@@ -33,29 +33,57 @@
             android:orientation="vertical"
             android:layout_marginLeft="20dp"
             >
-            <TextView
-                android:id="@+id/driver_name"
+            <LinearLayout
+                android:orientation="horizontal"
                 android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="Trần Minh Quang"
-                android:textSize="16sp"
-                android:textStyle="bold"
+                android:layout_height="wrap_content">
+                <TextView
+                    android:id="@+id/driver_arrived_name"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Trần Minh Quang"
+                    android:textSize="16sp"
+                    android:textStyle="bold"
 
-                />
+                    />
+                <TextView
+                    android:id="@+id/driver_arrived_rate"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginLeft="10dp"
+                    android:text="4.5"
+                    android:drawableEnd="@drawable/ic_rating"/>
+            </LinearLayout>
+
 
             <TextView
-                android:id="@+id/phone"
+                android:id="@+id/driver_arrived_phone"
                 android:layout_marginTop="5dp"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="0987654321"
                 />
-
+            <TextView
+                android:id="@+id/driver_arrived_vehicle"
+                android:layout_marginTop="5dp"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Xe máy  -  biến số"
+                />
+            <TextView
+                android:id="@+id/driver_arrived_desc"
+                android:layout_marginTop="5dp"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Màu xe: đen, 2019"
+                android:maxLines="2"
+                android:ellipsize="end"
+                />
         </LinearLayout>
 
     </LinearLayout>
     <TextView
-        android:id="@+id/tv_message"
+        android:id="@+id/arrived_message"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_margin="20dp"

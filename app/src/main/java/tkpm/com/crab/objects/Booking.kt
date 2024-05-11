@@ -32,4 +32,10 @@ data class Booking(
     val createdAt: String,
 )
 
+data class BookingVehilce(
+    val booking: Booking,
+    val vehicleInfo: Vehicle,
+    val rateDriver: Double
+)
+
 

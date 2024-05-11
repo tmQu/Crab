@@ -301,7 +301,7 @@ class DriverMapActivity : AppCompatActivity(), OnMapReadyCallback {
 
                 // Change to default status
                 btnStep.text = "Đã tới"
-                startBtnGroup.visibility = View.VISIBLE
+                startBtnGroup.visibility = View.GONE
                 tripStatus = FINISH_TRIP
             }
         }
@@ -683,7 +683,6 @@ class DriverMapActivity : AppCompatActivity(), OnMapReadyCallback {
         ).continueWith {
             val lastLocation = locationProviderClient.lastLocation
             lastLocation.addOnSuccessListener {
-                lastLocation.addOnSuccessListener {
                     if (it != null) {
                         currentLocation = LatLng(it.latitude, it.longitude)
 //                        currentLocationMarker = mMap.addMarker(
@@ -693,7 +692,6 @@ class DriverMapActivity : AppCompatActivity(), OnMapReadyCallback {
                         centreCameraOnLocation(currentLocation)
                         centreCameraOnLocation(currentLocation)
                     }
-                }
             }
         }
 
@@ -853,6 +851,8 @@ class DriverMapActivity : AppCompatActivity(), OnMapReadyCallback {
             val gson = Gson()
             val message = gson.toJson(DriverStatus("driverOffline", "driver"))
             sendMessage(message)
+
+
         }
 
         internal class VehicleType(

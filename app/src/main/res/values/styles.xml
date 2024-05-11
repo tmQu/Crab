@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <style name="rounded">
+        <![CDATA[    <style name="rounded">         <item name="cornerSize">3dp</item>     </style>]]></style>
+</resources>

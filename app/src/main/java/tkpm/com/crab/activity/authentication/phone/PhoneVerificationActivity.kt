@@ -19,6 +19,8 @@ import com.google.firebase.auth.FirebaseAuthMissingActivityForRecaptchaException
 import com.google.firebase.auth.PhoneAuthCredential
 import com.google.firebase.auth.PhoneAuthOptions
 import com.google.firebase.auth.PhoneAuthProvider
+import com.google.firebase.messaging.FirebaseMessaging
+import com.google.gson.JsonObject
 import tkpm.com.crab.R
 import tkpm.com.crab.activity.UpdateInfoActivity
 import tkpm.com.crab.activity.customer.CustomerMapsActivity
@@ -144,11 +146,14 @@ class PhoneVerificationActivity : AppCompatActivity() {
                                         // Move to MapsActivity (Customer)
                                         Intent(context, CustomerMapsActivity::class.java)
                                 }
+                            FirebaseMessaging.getInstance().token.addOnCompleteListener {
+                                sendRegistrationToServer(it.result.toString())
+                                // Clear all activities in the back stack
+                                intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+                                startActivity(intent)
+                                finish()
+                            }
 
-                            // Clear all activities in the back stack
-                            intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
-                            startActivity(intent)
-                            finish()
                         }
 
                         override fun onError(error: Throwable) {
@@ -242,6 +247,23 @@ class PhoneVerificationActivity : AppCompatActivity() {
             }) // OnVerificationStateChangedCallbacks
             .build()
         PhoneAuthProvider.verifyPhoneNumber(options)
+    }
+
+    private fun sendRegistrationToServer(token: String) {
+        val obj = JsonObject()
+        obj.addProperty("user", CredentialService().getAll().id)
+        obj.addProperty("token", token)
+
+        APIService().doPost<Any>("notification/update-token", obj,  object : APICallback<Any> {
+            override fun onSuccess(result: Any) {
+                Log.i("Notification", "result: $result")
+            }
+
+            override fun onError(t: Throwable) {
+                Log.i("Notification", "result: ${t.message}")
+
+            }
+        })
     }
 
 }

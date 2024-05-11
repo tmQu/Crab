@@ -14,7 +14,12 @@ import tkpm.com.crab.BuildConfig
 import java.net.URL
 
 fun addressOverview(address: String): String {
-    return address.substring(0, address.indexOf(","))
+    if(address.indexOf(",") != -1) {
+        return address.substring(0, address.indexOf(","))
+    }
+    else {
+        return address
+    }
 }
 
 private fun drawPath(result: String?, mMap: GoogleMap, polylines: MutableList<Polyline>) {
