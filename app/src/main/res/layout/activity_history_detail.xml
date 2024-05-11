@@ -118,13 +118,80 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginVertical="8dp"
-                android:orientation="horizontal"
-                android:visibility="gone">
+                android:orientation="vertical">
 
                 <LinearLayout
+                    android:id="@+id/historyDetailCustomerLinearLayout"
                     android:layout_width="match_parent"
                     android:layout_height="match_parent"
-                    android:orientation="horizontal">
+                    android:orientation="horizontal"
+                    android:visibility="gone">
+
+                    <androidx.cardview.widget.CardView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        app:cardCornerRadius="999dp"
+                        app:cardElevation="0dp">
+
+                        <ImageView
+                            android:id="@+id/historyDetailCustomerAvatar"
+                            android:layout_width="48dp"
+                            android:layout_height="48dp"
+                            tools:srcCompat="@tools:sample/avatars" />
+                    </androidx.cardview.widget.CardView>
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent"
+                        android:layout_marginLeft="8dp"
+                        android:orientation="vertical">
+
+                        <TextView
+                            android:id="@+id/historyDetailCustomerNameTextView"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:text="Customer" />
+
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="match_parent"
+                            android:gravity="center_vertical"
+                            android:orientation="horizontal">
+
+                            <RatingBar
+                                android:id="@+id/historyDetailCustomerRatingBar"
+                                style="@android:style/Widget.Material.RatingBar.Small"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:indeterminateOnly="false"
+                                android:isIndicator="true"
+                                android:numStars="5"
+                                android:rating="4.3"
+                                android:stepSize="0.1" />
+
+                            <Button
+                                android:id="@+id/historyDetailCustomerRateButton"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:insetTop="0dp"
+                                android:insetBottom="0dp"
+                                android:maxHeight="16dp"
+                                android:text="Rate"
+                                android:textSize="12sp"
+                                android:visibility="gone"
+                                app:iconPadding="0dp" />
+                        </LinearLayout>
+
+                    </LinearLayout>
+
+                </LinearLayout>
+
+                <LinearLayout
+                    android:id="@+id/historyDetailDriverLinearLayout"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:orientation="horizontal"
+                    android:visibility="gone">
 
                     <androidx.cardview.widget.CardView
                         android:layout_width="wrap_content"
@@ -149,17 +216,36 @@
                             android:id="@+id/historyDetailDriverNameTextView"
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:text="Name" />
+                            android:text="Driver" />
 
-                        <RatingBar
-                            android:id="@+id/historyDetailDriverRatingTextView"
-                            style="@android:style/Widget.Material.RatingBar.Small"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:layout_marginTop="8dp"
-                            android:numStars="5"
-                            android:rating="4.3"
-                            android:stepSize="0.1" />
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="match_parent"
+                            android:gravity="center_vertical"
+                            android:orientation="horizontal">
+
+                            <RatingBar
+                                android:id="@+id/historyDetailDriverRatingBar"
+                                style="@android:style/Widget.Material.RatingBar.Small"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:numStars="5"
+                                android:rating="4.3"
+                                android:stepSize="0.1" />
+
+                            <Button
+                                android:id="@+id/historyDetailDriverRateButton"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:insetTop="0dp"
+                                android:insetBottom="0dp"
+                                android:maxHeight="16dp"
+                                android:text="Rate"
+                                android:textSize="12sp"
+                                android:visibility="gone"
+                                app:iconPadding="0dp" />
+                        </LinearLayout>
+
                     </LinearLayout>
 
                 </LinearLayout>

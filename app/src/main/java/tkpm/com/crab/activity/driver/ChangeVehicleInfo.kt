@@ -2,7 +2,6 @@ package tkpm.com.crab.activity.driver
 
 import android.os.Bundle
 import android.util.Log
-import android.widget.AutoCompleteTextView
 import android.widget.Button
 import android.widget.Toast
 import androidx.activity.enableEdgeToEdge
@@ -121,7 +120,7 @@ class ChangeVehicleInfo : AppCompatActivity() {
                 loadingDialog.dismissDialog()
 
                 // Recreate the activity
-                recreate()
+                finish()
             }
 
             override fun onError(error: Throwable) {

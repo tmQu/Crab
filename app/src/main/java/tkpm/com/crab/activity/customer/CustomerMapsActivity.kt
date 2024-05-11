@@ -8,6 +8,7 @@ import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
 import android.content.pm.PackageManager
+import android.content.res.Resources
 import android.graphics.Color
 import android.os.AsyncTask
 import android.os.Bundle
@@ -83,18 +84,11 @@ import tkpm.com.crab.objects.BookingRequest
 import tkpm.com.crab.objects.BookingVehilce
 import tkpm.com.crab.objects.Message
 import tkpm.com.crab.objects.PaymentMethodSerializable
-import tkpm.com.crab.objects.User
 import tkpm.com.crab.objects.VehicleTypePrice
 import tkpm.com.crab.objects.VehilceTypePriceResponse
+import tkpm.com.crab.utils.DirectionRequest
 import java.net.URL
 import java.util.concurrent.Executors
-import java.util.concurrent.TimeUnit
-import tkpm.com.crab.utils.DirectionRequest
-
-
-
-
-
 
 
 class CustomerMapsActivity : AppCompatActivity(), OnMapReadyCallback {
@@ -110,7 +104,9 @@ class CustomerMapsActivity : AppCompatActivity(), OnMapReadyCallback {
         const val PICK_UP = 6
         const val FINISH_TRIP = 7
     }
+
     private var tripStatus = -1
+
     // map
     private lateinit var mMap: GoogleMap
 
@@ -166,39 +162,67 @@ class CustomerMapsActivity : AppCompatActivity(), OnMapReadyCallback {
 
     private lateinit var resultLauncher: ActivityResultLauncher<Intent>
 
-    private val myBroadcastReceiver = object : BroadcastReceiver()
-    {
+    private val myBroadcastReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context?, intent: Intent?) {
             val message = intent?.getStringExtra("message")
             val bookingId = intent?.getStringExtra("booking_id")
-            if(message == NOTIFICATION.DRIVER_COMMING)
-            {
+            if (message == NOTIFICATION.DRIVER_COMMING) {
                 tripStatus = DRIVER_COMING
-                booking_id = bookingId?:""
-                driverLat = intent?.getDoubleExtra("driver_lat", 0.0) ?: 0.0
-                driverLng = intent?.getDoubleExtra("driver_lng", 0.0) ?: 0.0
+                booking_id = bookingId ?: ""
+                driverLat = intent.getDoubleExtra("driver_lat", 0.0)
+                driverLng = intent.getDoubleExtra("driver_lng", 0.0)
                 handleBottomSheet()
             }
-            if(message == NOTIFICATION.DRIVER_ARRIVED)
-            {
+            if (message == NOTIFICATION.DRIVER_ARRIVED) {
                 tripStatus = DRIVER_ARRIVED
                 handleBottomSheet()
             }
-            if(message == NOTIFICATION.PICK_UP)
-            {
+            if (message == NOTIFICATION.PICK_UP) {
                 tripStatus = PICK_UP
                 handleBottomSheet()
             }
 
-            if(message == NOTIFICATION.FINISH_TRIP)
-            {
+            if (message == NOTIFICATION.FINISH_TRIP) {
                 tripStatus = FINISH_TRIP
                 handleBottomSheet()
             }
         }
     }
 
+    override fun onAttachedToWindow() {
+        super.onAttachedToWindow()
 
+        fun getNavBarHeight(context: Context): Int {
+            val resources: Resources = context.resources
+            val resourceId = resources.getIdentifier("navigation_bar_height", "dimen", "android")
+            if (resourceId > 0) {
+                Log.i(
+                    "DriverMapActivity",
+                    "NavBar height: ${resources.getDimensionPixelSize(resourceId)}"
+                )
+                // convert 16dp to px
+                val dp = 16
+                val px = (dp * resources.displayMetrics.density).toInt()
+                return (resources.getDimensionPixelSize(resourceId))
+            }
+            return 0
+        }
+
+        val bottoms = listOf(
+            findViewById<ConstraintLayout>(R.id.bottom_type_vehicle),
+            findViewById<ConstraintLayout>(R.id.bottom_choose_location),
+            findViewById<ConstraintLayout>(R.id.bottom_wait_driver),
+            findViewById<ConstraintLayout>(R.id.bottom_driver_coming),
+            findViewById<ConstraintLayout>(R.id.bottom_driver_arrived),
+            findViewById<ConstraintLayout>(R.id.bottom_finish_trip),
+        )
+
+        for (bottom in bottoms) {
+            bottom.setPadding(0, 0, 0, getNavBarHeight(this))
+        }
+
+
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -207,7 +231,11 @@ class CustomerMapsActivity : AppCompatActivity(), OnMapReadyCallback {
 
         userMenuButton = findViewById(R.id.left_menu_button)
 
-        registerReceiver(myBroadcastReceiver, IntentFilter(NOTIFICATION.ACTION_NAME), RECEIVER_EXPORTED)
+        registerReceiver(
+            myBroadcastReceiver,
+            IntentFilter(NOTIFICATION.ACTION_NAME),
+            RECEIVER_EXPORTED
+        )
 
         checkLocationPermissions()
 
@@ -279,10 +307,8 @@ class CustomerMapsActivity : AppCompatActivity(), OnMapReadyCallback {
         bottomChooseVehicle.addBottomSheetCallback(object :
             BottomSheetBehavior.BottomSheetCallback() {
             override fun onStateChanged(bottomSheet: View, newState: Int) {
-                if(newState == BottomSheetBehavior.STATE_HIDDEN)
-                {
-                    if(tripStatus == CHOOSE_VEHICLE)
-                    {
+                if (newState == BottomSheetBehavior.STATE_HIDDEN) {
+                    if (tripStatus == CHOOSE_VEHICLE) {
                         tripStatus = CHOOSE_LOCATION
                         handleBottomSheet()
                     }
@@ -297,7 +323,7 @@ class CustomerMapsActivity : AppCompatActivity(), OnMapReadyCallback {
 
         handleAutocompleteAddr()
         val scheduleTaskExecutor = Executors.newScheduledThreadPool(5)
-        
+
 
 
         findViewById<ImageButton>(R.id.here_btn).setOnClickListener {
@@ -384,65 +410,75 @@ class CustomerMapsActivity : AppCompatActivity(), OnMapReadyCallback {
         val obj = JsonObject()
         obj.addProperty("id", user.id)
         obj.addProperty("role", user.role)
-        APIService().doPost<Booking>("bookings/check-progress-booking", obj,object : APICallback<Any> {
-            override fun onSuccess(result: Any) {
-                val booking = result as Booking
-                booking_id = booking.id
+        APIService().doPost<Booking>(
+            "bookings/check-progress-booking",
+            obj,
+            object : APICallback<Any> {
+                override fun onSuccess(result: Any) {
+                    val booking = result as Booking
+                    booking_id = booking.id
 
-                getDirection(LatLng(booking.info.pickup.location.coordinates[1], booking.info.pickup.location.coordinates[0]), LatLng(booking.info.destination.location.coordinates[1], booking.info.destination.location.coordinates[0]))
-                clearMarkers()
-                currentMarker = mMap.addMarker(
-                    MarkerOptions().position(
+                    getDirection(
                         LatLng(
                             booking.info.pickup.location.coordinates[1],
                             booking.info.pickup.location.coordinates[0]
-                        )
-                    ).title("Pickup Location")
-                        .snippet(booking.info.pickup.address)
-                )
-                destinationMarker = mMap.addMarker(
-                    MarkerOptions().position(
+                        ),
                         LatLng(
                             booking.info.destination.location.coordinates[1],
                             booking.info.destination.location.coordinates[0]
                         )
-                    ).title("Destination Location")
-                        .snippet(booking.info.destination.address)
-                )
+                    )
+                    clearMarkers()
+                    currentMarker = mMap.addMarker(
+                        MarkerOptions().position(
+                            LatLng(
+                                booking.info.pickup.location.coordinates[1],
+                                booking.info.pickup.location.coordinates[0]
+                            )
+                        ).title("Pickup Location")
+                    )
+                    destinationMarker = mMap.addMarker(
+                        MarkerOptions().position(
+                            LatLng(
+                                booking.info.destination.location.coordinates[1],
+                                booking.info.destination.location.coordinates[0]
+                            )
+                        ).title("Destination Location")
+                    )
 
-                when(booking.status)
-                {
-                    "pending" -> {
-                        tripStatus = WAIT_DRIVER
-                        handleBottomSheet()
-                    }
-                    "accepted" -> {
-                        tripStatus = DRIVER_COMING
-                        handleBottomSheet()
-                    }
-                    "arrived-at-pick-up" -> {
-                        tripStatus = DRIVER_ARRIVED
-                        handleBottomSheet()
-                    }
-                    "pick-up" -> {
-                        tripStatus = PICK_UP
-                        handleBottomSheet()
+                    when (booking.status) {
+                        "pending" -> {
+                            tripStatus = WAIT_DRIVER
+                            handleBottomSheet()
+                        }
+
+                        "accepted" -> {
+                            tripStatus = DRIVER_COMING
+                            handleBottomSheet()
+                        }
+
+                        "arrived-at-pick-up" -> {
+                            tripStatus = DRIVER_ARRIVED
+                            handleBottomSheet()
+                        }
+
+                        "pick-up" -> {
+                            tripStatus = PICK_UP
+                            handleBottomSheet()
+                        }
                     }
                 }
-            }
 
-            override fun onError(error: Throwable) {
-                if(suggestionLat != 0.0 && suggestionLng != 0.0)
-                {
-                    val suggestionLatLng = LatLng(suggestionLat, suggestionLng)
-                    setDestinationLocationMarker(suggestionLatLng)
-                    moveCamera(suggestionLatLng, 15f)
-                    getDirection()
+                override fun onError(error: Throwable) {
+                    if (suggestionLat != 0.0 && suggestionLng != 0.0) {
+                        val suggestionLatLng = LatLng(suggestionLat, suggestionLng)
+                        setDestinationLocationMarker(suggestionLatLng)
+                        moveCamera(suggestionLatLng, 15f)
+                        getDirection()
+                    }
+                    Log.e("API_SERVICE", "${error.message}")
                 }
-                Log.e("API_SERVICE", "${error.message}")
-
-            }
-        })
+            })
     }
 
     private fun createRequest() {
@@ -479,7 +515,6 @@ class CustomerMapsActivity : AppCompatActivity(), OnMapReadyCallback {
         })
 
     }
-
 
 
     private var line: Polyline? = null
@@ -564,8 +599,7 @@ class CustomerMapsActivity : AppCompatActivity(), OnMapReadyCallback {
             activity.getTime(result)
 
             activity.getDesAddress(result)
-            if (activity.tripStatus == CHOOSE_LOCATION || activity.tripStatus == -1)
-            {
+            if (activity.tripStatus == CHOOSE_LOCATION || activity.tripStatus == -1) {
                 activity.tripStatus = CHOOSE_LOCATION
                 activity.handleBottomSheet()
             }
@@ -573,15 +607,19 @@ class CustomerMapsActivity : AppCompatActivity(), OnMapReadyCallback {
         }
 
 
-
     }
 
-    fun handleBottomSheet()
-    {
+    fun handleBottomSheet() {
 
-        val bottoms = listOf(bottomChooseVehicle, bottomChooseLocation, bottomWaitDriver, bottomDriverComing, bottomDirverArrived, bottomFinishTrip)
-        for (bottom in bottoms)
-        {
+        val bottoms = listOf(
+            bottomChooseVehicle,
+            bottomChooseLocation,
+            bottomWaitDriver,
+            bottomDriverComing,
+            bottomDirverArrived,
+            bottomFinishTrip
+        )
+        for (bottom in bottoms) {
             bottom.state = BottomSheetBehavior.STATE_HIDDEN
         }
         autocomplete_addr.isEnabled =
@@ -594,28 +632,34 @@ class CustomerMapsActivity : AppCompatActivity(), OnMapReadyCallback {
                 bottomChooseLocation.state = BottomSheetBehavior.STATE_EXPANDED
                 showTheBottomLocation()
             }
+
             CHOOSE_VEHICLE -> {
                 bottomChooseVehicle.state = BottomSheetBehavior.STATE_EXPANDED
                 showTheBottomVehicle()
             }
+
             WAIT_DRIVER -> {
                 bottomWaitDriver.state = BottomSheetBehavior.STATE_EXPANDED
                 showTheBottomWaiting()
             }
+
             DRIVER_COMING -> {
                 Log.i("Notification", "booking_id: $booking_id")
                 bottomDriverComing.state = BottomSheetBehavior.STATE_EXPANDED
                 showTheBottomDriverComing()
             }
+
             DRIVER_ARRIVED -> {
                 bottomDirverArrived.state = BottomSheetBehavior.STATE_EXPANDED
                 showTheBottomDriverArrived()
             }
+
             PICK_UP -> {
                 bottomDirverArrived.state = BottomSheetBehavior.STATE_EXPANDED
                 showTheBottomDriverArrived("Bạn đang trên đường")
 
             }
+
             FINISH_TRIP -> {
                 bottomFinishTrip.state = BottomSheetBehavior.STATE_EXPANDED
                 showTheBottomFinishTrip()
@@ -681,20 +725,21 @@ class CustomerMapsActivity : AppCompatActivity(), OnMapReadyCallback {
                 }
 
                 override fun onError(t: Throwable) {
-                    Toast.makeText(this@CustomerMapsActivity, "Error: ${t.message}", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(
+                        this@CustomerMapsActivity,
+                        "Error: ${t.message}",
+                        Toast.LENGTH_SHORT
+                    ).show()
                     Log.i("MapsActivity", t.message.toString())
                 }
             })
+    }
+
+    fun showTheBottomWaiting() {
 
     }
 
-    fun showTheBottomWaiting()
-    {
-
-    }
-
-    fun showTheBottomDriverComing()
-    {
+    fun showTheBottomDriverComing() {
         val driverName = findViewById<TextView>(R.id.driver_name)
         val driverPhone = findViewById<TextView>(R.id.driver_phone)
         val driverAvatar = findViewById<ImageView>(R.id.driver_avatar)
@@ -723,9 +768,15 @@ class CustomerMapsActivity : AppCompatActivity(), OnMapReadyCallback {
                 driverRate.text = result.rateDriver.toString()
 
                 Picasso.get().load(driver.avatar).placeholder(R.drawable.ic_driver).into(driverAvatar)
-                if(driverLat != 0.0 && driverLng != 0.0)
-                {
-                    getDirection(LatLng(driverLat, driverLng), LatLng(booking.info.pickup.location.coordinates[1], booking.info.pickup.location.coordinates[0]))
+                if(driverLat != 0.0 && driverLng != 0.0) {
+                    getDirection(
+                        LatLng(driverLat, driverLng),
+                        LatLng(
+                            booking.info.pickup.location.coordinates[1],
+                            booking.info.pickup.location.coordinates[0]
+                        )
+                    )
+
                     clearMarkers()
                     currentMarker = mMap.addMarker(
                         MarkerOptions().position(
@@ -748,7 +799,8 @@ class CustomerMapsActivity : AppCompatActivity(), OnMapReadyCallback {
             }
 
             override fun onError(t: Throwable) {
-                Toast.makeText(this@CustomerMapsActivity, "Error: ${t.message}", Toast.LENGTH_SHORT).show()
+                Toast.makeText(this@CustomerMapsActivity, "Error: ${t.message}", Toast.LENGTH_SHORT)
+                    .show()
             }
         })
     }
@@ -761,8 +813,7 @@ class CustomerMapsActivity : AppCompatActivity(), OnMapReadyCallback {
             destinationMarker?.remove()
         }
 
-        if(driverMarker != null)
-        {
+        if (driverMarker != null) {
             driverMarker?.remove()
         }
 
@@ -804,7 +855,16 @@ class CustomerMapsActivity : AppCompatActivity(), OnMapReadyCallback {
 
                 Picasso.get().load(driver.avatar).placeholder(R.drawable.ic_driver).into(driverAvatar)
 
-                getDirection(LatLng(booking.info.pickup.location.coordinates[1], booking.info.pickup.location.coordinates[0]), LatLng(booking.info.destination.location.coordinates[1], booking.info.destination.location.coordinates[0]))
+                getDirection(
+                    LatLng(
+                        booking.info.pickup.location.coordinates[1],
+                        booking.info.pickup.location.coordinates[0]
+                    ),
+                    LatLng(
+                        booking.info.destination.location.coordinates[1],
+                        booking.info.destination.location.coordinates[0]
+                    )
+                )
                 clearMarkers()
                 currentMarker = mMap.addMarker(
                     MarkerOptions().position(
@@ -845,6 +905,7 @@ class CustomerMapsActivity : AppCompatActivity(), OnMapReadyCallback {
         clearLines()
         clearMarkers()
         autocomplete_addr.isEnabled = true
+
         // Set onClick for rating button
         findViewById<Button>(R.id.bottom_finish_trip_rating).setOnClickListener {
             val intent = Intent(this, CustomerRatingActivity::class.java)
@@ -904,12 +965,15 @@ class CustomerMapsActivity : AppCompatActivity(), OnMapReadyCallback {
     }
 
 
-
     private fun getDirection(origin: LatLng, destination: LatLng) {
-        mMap.moveCamera(CameraUpdateFactory.newLatLngBounds(LatLngBounds.Builder().include(origin!!).include(destination!!).build(), 50))
+        mMap.moveCamera(
+            CameraUpdateFactory.newLatLngBounds(
+                LatLngBounds.Builder().include(origin).include(destination).build(), 50
+            )
+        )
         clearLines()
         val url =
-            "https://maps.googleapis.com/maps/api/directions/json?origin=${origin?.latitude},${origin?.longitude}&destination=${destination?.latitude},${destination?.longitude}&key=${BuildConfig.MAPS_API_KEY}&mode=driving"
+            "https://maps.googleapis.com/maps/api/directions/json?origin=${origin.latitude},${origin.longitude}&destination=${destination.latitude},${destination.longitude}&key=${BuildConfig.MAPS_API_KEY}&mode=driving"
 
         val directionRequest = DirectionRequest(mMap, origin!!, destination!!, polylines)
         directionRequest.execute()
@@ -921,12 +985,15 @@ class CustomerMapsActivity : AppCompatActivity(), OnMapReadyCallback {
         if(setBound)
             mMap.moveCamera(CameraUpdateFactory.newLatLngBounds(LatLngBounds.Builder().include(origin!!).include(destination!!).build(), 50))
 
+
         clearLines()
+        if(origin == null || destination == null)
+            return
 
         val url =
-            "https://maps.googleapis.com/maps/api/directions/json?origin=${origin?.latitude},${origin?.longitude}&destination=${destination?.latitude},${destination?.longitude}&key=${BuildConfig.MAPS_API_KEY}&mode=driving"
+            "https://maps.googleapis.com/maps/api/directions/json?origin=${origin.latitude},${origin.longitude}&destination=${destination.latitude},${destination.longitude}&key=${BuildConfig.MAPS_API_KEY}&mode=driving"
 
-        val directionRequest = DirectionRequest(mMap, origin!!, destination!!, polylines)
+        val directionRequest = DirectionRequest(mMap, origin, destination, polylines)
         val result = directionRequest.execute().get()
 
         // get the distance and time
@@ -1117,8 +1184,7 @@ class CustomerMapsActivity : AppCompatActivity(), OnMapReadyCallback {
             override fun onMarkerClick(p0: Marker): Boolean {
                 p0.showInfoWindow()
                 if (p0 == destinationMarker) {
-                    if(tripStatus == CHOOSE_LOCATION)
-                    {
+                    if (tripStatus == CHOOSE_LOCATION) {
                         tripStatus = CHOOSE_LOCATION
                         handleBottomSheet()
                     }

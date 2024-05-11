@@ -11,6 +11,14 @@ data class LocationRecord(
     @SerializedName("_id") val id: String, val address: String, val location: MongoLocation
 )
 
+data class Rating(
+    @SerializedName("_id")
+    val id: String = "",
+    val value: Float,
+    val comment: String,
+    val user: User,
+)
+
 data class BookingInfo(
     @SerializedName("_id") val id: String,
     val pickup: LocationRecord,
@@ -19,6 +27,8 @@ data class BookingInfo(
     val name: String,
     val fee: Int,
     val distance: Double,
+    val customer_rating: Rating,
+    val driver_rating: Rating,
 )
 
 data class Booking(
@@ -29,6 +39,7 @@ data class Booking(
     val service: String,
     val vehicle: String,
     val driver: User,
+    val orderedBy: User,
     val createdAt: String,
 )
 

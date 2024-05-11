@@ -27,6 +27,12 @@
             android:exported="false" />
 
         <activity
+            android:name=".activity.driver.DriverTransactionsHistory"
+            android:exported="false" />
+        <activity
+            android:name=".activity.driver.DriverTopupPayoutActivity"
+            android:exported="false" />
+        <activity
             android:name=".activity.driver.DriverRatingActivity"
             android:exported="false" />
         <activity
