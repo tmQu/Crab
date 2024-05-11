@@ -19,9 +19,11 @@ import com.google.firebase.auth.FirebaseAuthMissingActivityForRecaptchaException
 import com.google.firebase.auth.PhoneAuthCredential
 import com.google.firebase.auth.PhoneAuthOptions
 import com.google.firebase.auth.PhoneAuthProvider
+import com.google.firebase.messaging.FirebaseMessaging
+import com.google.gson.JsonObject
 import tkpm.com.crab.R
-import tkpm.com.crab.activity.customer.MapsActivity
 import tkpm.com.crab.activity.UpdateInfoActivity
+import tkpm.com.crab.activity.customer.CustomerMapsActivity
 import tkpm.com.crab.activity.driver.DriverMapActivity
 import tkpm.com.crab.api.APICallback
 import tkpm.com.crab.api.APIService
@@ -142,13 +144,16 @@ class PhoneVerificationActivity : AppCompatActivity() {
                                         Intent(context, DriverMapActivity::class.java)
                                     else
                                         // Move to MapsActivity (Customer)
-                                        Intent(context, MapsActivity::class.java)
+                                        Intent(context, CustomerMapsActivity::class.java)
                                 }
+                            FirebaseMessaging.getInstance().token.addOnCompleteListener {
+                                sendRegistrationToServer(it.result.toString())
+                                // Clear all activities in the back stack
+                                intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+                                startActivity(intent)
+                                finish()
+                            }
 
-                            // Clear all activities in the back stack
-                            intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
-                            startActivity(intent)
-                            finish()
                         }
 
                         override fun onError(error: Throwable) {
@@ -170,7 +175,7 @@ class PhoneVerificationActivity : AppCompatActivity() {
                             onClickSendOTPAgain()
                         }
                         else{
-                            errorMsg.setText("Mã OTP không hợp lệ, bạn còn $tryCount lần thử")
+                            errorMsg.text = "Mã OTP không hợp lệ, bạn còn $tryCount lần thử"
                         }
                         loadingDialog.dismissDialog()
                     }
@@ -242,6 +247,23 @@ class PhoneVerificationActivity : AppCompatActivity() {
             }) // OnVerificationStateChangedCallbacks
             .build()
         PhoneAuthProvider.verifyPhoneNumber(options)
+    }
+
+    private fun sendRegistrationToServer(token: String) {
+        val obj = JsonObject()
+        obj.addProperty("user", CredentialService().getAll().id)
+        obj.addProperty("token", token)
+
+        APIService().doPost<Any>("notification/update-token", obj,  object : APICallback<Any> {
+            override fun onSuccess(result: Any) {
+                Log.i("Notification", "result: $result")
+            }
+
+            override fun onError(t: Throwable) {
+                Log.i("Notification", "result: ${t.message}")
+
+            }
+        })
     }
 
 }

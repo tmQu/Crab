@@ -7,8 +7,10 @@
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
     <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 
     <application
+        android:name=".CrabApplication"
         android:allowBackup="true"
         android:dataExtractionRules="@xml/data_extraction_rules"
         android:fullBackupContent="@xml/backup_rules"
@@ -20,6 +22,37 @@
         android:theme="@style/Theme.Crab"
         android:usesCleartextTraffic="true"
         tools:targetApi="31">
+        <activity
+            android:name=".activity.SuggestionActivity"
+            android:exported="false" />
+
+        <activity
+            android:name=".activity.driver.DriverTransactionsHistory"
+            android:exported="false" />
+        <activity
+            android:name=".activity.driver.DriverTopupPayoutActivity"
+            android:exported="false" />
+        <activity
+            android:name=".activity.driver.DriverRatingActivity"
+            android:exported="false" />
+        <activity
+            android:name=".activity.customer.CustomerRatingActivity"
+            android:exported="false" />
+        <activity
+            android:name=".activity.driver.CompleteOrderActivity"
+            android:exported="false" />
+        <activity
+            android:name=".activity.HistoryActivity"
+            android:exported="false" />
+        <activity
+            android:name=".activity.HistoryDetailActivity"
+            android:exported="false" />
+        <activity
+            android:name=".activity.driver.DriverIncomeActivity"
+            android:exported="false" />
+        <activity
+            android:name=".activity.driver.ChangeVehicleInfo"
+            android:exported="false" />
         <activity
             android:name=".activity.customer.ChoosePaymentActivity"
             android:exported="false" />
@@ -55,17 +88,13 @@
             android:value="${MAPS_API_KEY}" />
 
         <activity
-            android:name=".activity.customer.MapsActivity"
+            android:name=".activity.customer.CustomerMapsActivity"
             android:exported="true"
-            android:label="@string/title_activity_maps">
-
-        </activity>
+            android:label="@string/title_activity_maps" />
         <activity
             android:name=".activity.driver.DriverMapActivity"
             android:exported="true"
-            android:label="@string/title_activity_maps">
-
-        </activity>
+            android:label="@string/title_activity_maps" />
         <activity
             android:name=".MainActivity"
             android:exported="true">
@@ -75,6 +104,14 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+
+        <service
+            android:name=".notification.CustomerNotification"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="com.google.firebase.MESSAGING_EVENT" />
+            </intent-filter>
+        </service>
     </application>
 
 </manifest>

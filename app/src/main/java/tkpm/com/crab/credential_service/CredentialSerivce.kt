@@ -8,6 +8,8 @@ import android.util.Log
 import androidx.core.content.ContextCompat.startActivity
 import com.auth0.android.jwt.JWT
 import tkpm.com.crab.MainActivity
+import tkpm.com.crab.api.APICallback
+import tkpm.com.crab.api.APIService
 import tkpm.com.crab.objects.AccountRequest
 import tkpm.com.crab.objects.InternalAccount
 import java.io.File
@@ -103,6 +105,30 @@ class CredentialService {
                 // Move back to main activity
                 val i = Intent(context, MainActivity::class.java)
                 startActivity(context, i, null)
+            } else {
+                APIService().doGet<InternalAccount>(
+                    "accounts/get-user/${
+                        jwt.getClaim("phone").asString()
+                    }", object :
+                        APICallback<Any> {
+                        override fun onSuccess(data: Any) {
+                            data as InternalAccount
+                            Log.d("CREDENTIAL_SERVICE", "Credential is valid")
+                            return
+                        }
+
+                        override fun onError(error: Throwable) {
+                            // Handle exception
+                            Log.e("CREDENTIAL_SERVICE", "Error in getting credential", error)
+
+                            // Erase credential
+                            CredentialService().erase()
+
+                            // Move back to main activity
+                            val i = Intent(context, MainActivity::class.java)
+                            startActivity(context, i, null)
+                        }
+                    })
             }
         } catch (t: Throwable) {
             // Handle exception

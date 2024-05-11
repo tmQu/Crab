@@ -9,7 +9,7 @@ import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
 import tkpm.com.crab.R
 import tkpm.com.crab.objects.VehicleTypePrice
-import tkpm.com.crab.utils.Utils
+import tkpm.com.crab.utils.PriceDisplay
 import kotlin.properties.Delegates
 
 class TypeVehicleAdapter(val listVehicle: List<VehicleTypePrice>, val onItemClickListener:  (Int) -> Unit): RecyclerView.Adapter<TypeVehicleAdapter.ViewHolder>(){
@@ -39,7 +39,8 @@ class TypeVehicleAdapter(val listVehicle: List<VehicleTypePrice>, val onItemClic
     }
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder {
-        val view = LayoutInflater.from(parent.context).inflate(R.layout.type_vehicle_row, parent, false)
+        val view = LayoutInflater.from(parent.context)
+            .inflate(R.layout.item_vehicle_type_row_layout, parent, false)
         return ViewHolder(view)
     }
 
@@ -51,7 +52,7 @@ class TypeVehicleAdapter(val listVehicle: List<VehicleTypePrice>, val onItemClic
 
         val vehicle = listVehicle[position]
 
-        priceVehicle.text = Utils.formatVND(vehicle.fee)
+        priceVehicle.text = PriceDisplay.formatVND(vehicle.fee.toLong())
         if (vehicle.typeVehicle.contains("Bike", true))
         {
             imageVehicle.setImageResource(R.drawable.ic_bike)
@@ -70,11 +71,11 @@ class TypeVehicleAdapter(val listVehicle: List<VehicleTypePrice>, val onItemClic
         }
         if(selectedList[position])
         {
-            holder.itemView.setBackgroundColor(Color.parseColor("#F0F9F8"))
+            holder.itemView.setBackgroundColor(Color.parseColor("#FFE6E6E6"))
         }
         else
         {
-            holder.itemView.setBackgroundColor(Color.parseColor("#FFFFFF"))
+            holder.itemView.setBackgroundColor(Color.parseColor("#00FFFFFF"))
 
         }
     }

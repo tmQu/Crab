@@ -3,18 +3,18 @@ package tkpm.com.crab.activity.authentication.phone
 import android.Manifest
 import android.content.Intent
 import android.content.pm.PackageManager
-import androidx.appcompat.app.AppCompatActivity
+import android.os.Build
 import android.os.Bundle
 import android.util.Log
 import android.view.View.NOT_FOCUSABLE
 import android.view.inputmethod.InputMethodManager
-import android.widget.Button
 import android.widget.TextView
 import android.widget.Toast
+import androidx.annotation.RequiresApi
+import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
 import com.google.android.material.button.MaterialButton
 import com.google.android.material.textfield.TextInputLayout
-import com.google.firebase.Firebase
 import com.google.firebase.FirebaseException
 import com.google.firebase.FirebaseTooManyRequestsException
 import com.google.firebase.auth.FirebaseAuth
@@ -23,7 +23,6 @@ import com.google.firebase.auth.FirebaseAuthMissingActivityForRecaptchaException
 import com.google.firebase.auth.PhoneAuthCredential
 import com.google.firebase.auth.PhoneAuthOptions
 import com.google.firebase.auth.PhoneAuthProvider
-import com.google.firebase.auth.auth
 import tkpm.com.crab.R
 import tkpm.com.crab.dialog.LoadingDialog
 import java.util.concurrent.TimeUnit
@@ -69,7 +68,7 @@ class PhoneLoginActivity : AppCompatActivity() {
         val imm = getSystemService(INPUT_METHOD_SERVICE) as InputMethodManager
         imm.showSoftInput(phoneEdt.editText, InputMethodManager.SHOW_IMPLICIT)
 
-        checkLocationPermissions()
+        checkPermissions()
     }
 
     private fun binding()
@@ -146,6 +145,12 @@ class PhoneLoginActivity : AppCompatActivity() {
                     }
 
                     // Show a message and update the UI
+                    progressDialog.dismissDialog()
+                    Toast.makeText(
+                        this@PhoneLoginActivity,
+                        "Failed to verify your phone number",
+                        Toast.LENGTH_SHORT
+                    ).show()
                 }
 
                 override fun onCodeSent(
@@ -192,11 +197,13 @@ class PhoneLoginActivity : AppCompatActivity() {
             }
     }
 
-    private fun checkLocationPermissions() {
+    private fun checkPermissions() {
         if (ContextCompat.checkSelfPermission(
                 this, Manifest.permission.ACCESS_FINE_LOCATION
             ) == PackageManager.PERMISSION_GRANTED && ContextCompat.checkSelfPermission(
                 this, Manifest.permission.ACCESS_COARSE_LOCATION
+            ) == PackageManager.PERMISSION_GRANTED && ContextCompat.checkSelfPermission(
+                this, Manifest.permission.POST_NOTIFICATIONS
             ) == PackageManager.PERMISSION_GRANTED
         ) {
             Log.d(TAG, "Permission granted")
@@ -204,7 +211,8 @@ class PhoneLoginActivity : AppCompatActivity() {
             requestPermissions(
                 arrayOf(
                     Manifest.permission.ACCESS_FINE_LOCATION,
-                    Manifest.permission.ACCESS_COARSE_LOCATION
+                    Manifest.permission.ACCESS_COARSE_LOCATION,
+                    Manifest.permission.POST_NOTIFICATIONS
                 ), REQUEST_CODE_PERMISSION
             )
         }

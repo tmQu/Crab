@@ -8,14 +8,9 @@ import android.provider.MediaStore
 import android.util.Log
 import android.view.View.INVISIBLE
 import android.widget.ImageView
-import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
-import androidx.core.view.ViewCompat
-import androidx.core.view.WindowCompat
-import androidx.core.view.WindowInsetsCompat
-import androidx.core.view.WindowInsetsControllerCompat
 import com.google.android.material.button.MaterialButton
 import com.google.android.material.textfield.MaterialAutoCompleteTextView
 import com.squareup.picasso.Picasso
@@ -24,7 +19,6 @@ import okhttp3.MultipartBody
 import okhttp3.RequestBody
 import tkpm.com.crab.BuildConfig
 import tkpm.com.crab.R
-import tkpm.com.crab.activity.customer.MapsActivity
 import tkpm.com.crab.api.APICallback
 import tkpm.com.crab.api.APIService
 import tkpm.com.crab.credential_service.CredentialService
@@ -79,7 +73,7 @@ class ChangeInfoActivity : AppCompatActivity() {
         // Set avatar click listener
         avatar.setOnClickListener {
             val intent = Intent(Intent.ACTION_PICK, MediaStore.Images.Media.EXTERNAL_CONTENT_URI)
-            startActivityForResult(intent, this.REQUEST_CODE);
+            startActivityForResult(intent, this.REQUEST_CODE)
         }
 
         // Set phone
@@ -201,7 +195,7 @@ class ChangeInfoActivity : AppCompatActivity() {
     }
 
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
-        super.onActivityResult(requestCode, resultCode, data);
+        super.onActivityResult(requestCode, resultCode, data)
 
         if (requestCode == this.REQUEST_CODE && resultCode == RESULT_OK && data != null) {
             Picasso.get().load(data.data).into(avatar)
