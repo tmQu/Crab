@@ -148,6 +148,7 @@ class DriverMapActivity : AppCompatActivity(), OnMapReadyCallback {
                 handleDriverStatus()
                 clearLines()
                 clearMarkers()
+                tripStatus = -1
 
                 // Clear the current booking
                 currentBooking = null
@@ -163,6 +164,7 @@ class DriverMapActivity : AppCompatActivity(), OnMapReadyCallback {
 
                 // Clear the current booking
                 currentBooking = null
+                tripStatus = -1
 
                 // Clear the map
                 clearLines()
@@ -242,8 +244,8 @@ class DriverMapActivity : AppCompatActivity(), OnMapReadyCallback {
         Log.i("timeout", "status " + bottomFunctionDriver.isHideable)
 
         btnStep.visibility = View.GONE
-
-        priceView.text = PriceDisplay.formatVND(booking.info.fee.toLong())
+        val payment = if(booking.info.payment_method == "cash") "Tiền mặt" else "Ví điện tử"
+        priceView.text = "${PriceDisplay.formatVND(booking.info.fee.toLong())} - ${payment}"
         customerName.text = booking.info.name
         serviceName.text = booking.service
         address.text = booking.info.destination.address
@@ -308,7 +310,13 @@ class DriverMapActivity : AppCompatActivity(), OnMapReadyCallback {
         }
 
         handleTripStatus(booking, btnStep, startBtnGroup)
-
+        if(tripStatus == -1)
+        {
+            startBtnGroup.visibility = View.VISIBLE
+        }
+        else {
+            startBtnGroup.visibility = View.GONE
+        }
         btnStep.setOnClickListener {
             if (tripStatus == DRIVER_COMING) {
                 tripStatus = DRIVER_ARRIVED
@@ -376,6 +384,8 @@ class DriverMapActivity : AppCompatActivity(), OnMapReadyCallback {
                 startBtnGroup.visibility = View.VISIBLE
             }
             else -> {
+                btnStep.visibility = View.GONE
+                startBtnGroup.visibility = View.VISIBLE
                 if(timeOut != 0)
                 {
                     Log.i("timeout", timeOut.toString())

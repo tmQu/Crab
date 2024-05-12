@@ -29,6 +29,7 @@ data class BookingInfo(
     val distance: Double,
     val customer_rating: Rating,
     val driver_rating: Rating,
+    val payment_method: String
 )
 
 data class Booking(
