@@ -51,12 +51,25 @@ jobs:
       - name: Build gradle project
         run: ./gradlew build
 
+      # Sign apk
+      - name: Sign APK
+        uses: r0adkll/sign-android-release@v1
+        with:
+          releaseDirectory: app/build/outputs/apk/release
+          signingKeyBase64: ${{ secrets.SIGNING_KEY }}
+          alias: ${{ secrets.ALIAS }}
+          keyStorePassword: ${{ secrets.KEY_STORE_PASSWORD }}
+          keyPassword: ${{ secrets.KEY_PASSWORD }}
+        env:
+          # override default build-tools version (33.0.0) -- optional
+          BUILD_TOOLS_VERSION: "34.0.0"
+
       # Upload APK to release
       - name: Upload APK to release
         uses: svenstaro/upload-release-action@v2
         with:
           repo_token: ${{ secrets.SECRET_TOKEN }}
-          file: ${{ env.main_project_module }}/build/outputs/apk/release/app-release-unsigned.apk
+          file: ${{ env.main_project_module }}/build/outputs/apk/release/app-release-unsigned-signed.apk
           asset_name: ${{ env.playstore_name }}.apk
           tag: ${{ secrets.TAG }}
           overwrite: true
