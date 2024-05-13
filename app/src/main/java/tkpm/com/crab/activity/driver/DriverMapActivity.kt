@@ -317,16 +317,26 @@ class DriverMapActivity : AppCompatActivity(), OnMapReadyCallback {
         else {
             startBtnGroup.visibility = View.GONE
         }
+        val headerStatus = findViewById<TextView>(R.id.status_header)
+        val navigateBtn = findViewById<Button>(R.id.rideRequestNavButton)
         btnStep.setOnClickListener {
             if (tripStatus == DRIVER_COMING) {
                 tripStatus = DRIVER_ARRIVED
                 updateBookingStatus(booking.id, "arrived-at-pick-up")
                 btnStep.text = "Đã đón"
+                headerStatus.text = "Đón khách"
+                navigateBtn.setOnClickListener {
+                    navigateMap(LatLng(booking.info.pickup.location.coordinates[1], booking.info.pickup.location.coordinates[0]))
+                }
             } else if (tripStatus == DRIVER_ARRIVED) {
                 drawPickUpToDes(booking)
                 tripStatus = PICK_UP
                 updateBookingStatus(booking.id, "pick-up")
                 btnStep.text = "Đã trả"
+                headerStatus.text = "Chở khách"
+                navigateBtn.setOnClickListener {
+                    navigateMap(LatLng(booking.info.destination.location.coordinates[1], booking.info.destination.location.coordinates[0]))
+                }
             } else if (tripStatus == PICK_UP) {
                 updateBookingStatus(booking.id, "completed")
 
@@ -344,9 +354,26 @@ class DriverMapActivity : AppCompatActivity(), OnMapReadyCallback {
         }
     }
 
+    private fun navigateMap(location: LatLng)
+    {
+        try {
+            val intent = Intent(
+                Intent.ACTION_VIEW,
+                Uri.parse("google.navigation:q=${location.latitude},${location.longitude}")
+            )
+            intent.setPackage("com.google.android.apps.maps")
+            intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            startActivity(intent)
+        } catch (e: Exception) {
+            Log.e("DriverMapActivity", "Error opening map: ${e.message}")
+            Toast.makeText(this, "Tải google map để sử dụng chức năng này", Toast.LENGTH_SHORT).show()
+        }
+    }
     private fun handleTripStatus(booking: Booking, btnStep: Button, startBtnGroup: LinearLayout)
     {
+        val navigateBtn = findViewById<Button>(R.id.rideRequestNavButton)
         val timeOutGroup = findViewById<LinearLayout>(R.id.timeout_group)
+        val headerStatus = findViewById<TextView>(R.id.status_header)
         Log.i("timeout", "status " + tripStatus.toString())
         timeOutGroup.visibility = View.GONE
         when(tripStatus)
@@ -363,20 +390,35 @@ class DriverMapActivity : AppCompatActivity(), OnMapReadyCallback {
                 btnStep.text = "Đã tới"
                 btnStep.visibility = View.VISIBLE
                 startBtnGroup.visibility = View.GONE
+                navigateBtn.visibility = View.VISIBLE
+                navigateBtn.setOnClickListener {
+                    navigateMap(LatLng(booking.info.pickup.location.coordinates[1], booking.info.pickup.location.coordinates[0]))
+                }
+                headerStatus.text = "Đón khách"
             }
 
             DRIVER_ARRIVED -> {
                 drawPickUpToDes(booking)
                 btnStep.text = "Đã đón"
+                headerStatus.text = "Đón khách"
                 btnStep.visibility = View.VISIBLE
                 startBtnGroup.visibility = View.GONE
+                navigateBtn.visibility = View.VISIBLE
+                navigateBtn.setOnClickListener {
+                    navigateMap(LatLng(booking.info.destination.location.coordinates[1], booking.info.destination.location.coordinates[0]))
+                }
             }
 
             PICK_UP -> {
                 drawPickUpToDes(booking)
                 btnStep.text = "Đã trả"
+                headerStatus.text = "Chở khách"
                 btnStep.visibility = View.VISIBLE
                 startBtnGroup.visibility = View.GONE
+                navigateBtn.visibility = View.VISIBLE
+                navigateBtn.setOnClickListener {
+                    navigateMap(LatLng(booking.info.destination.location.coordinates[1], booking.info.destination.location.coordinates[0]))
+                }
             }
 
             FINISH_TRIP -> {
@@ -397,7 +439,11 @@ class DriverMapActivity : AppCompatActivity(), OnMapReadyCallback {
 
                     handler.postDelayed(runnable, 1000)
                 }
-
+                navigateBtn.visibility = View.INVISIBLE
+                navigateBtn.setOnClickListener {
+                    // cancel listener
+                }
+                headerStatus.text = "Cuốc mới"
             }
         }
     }

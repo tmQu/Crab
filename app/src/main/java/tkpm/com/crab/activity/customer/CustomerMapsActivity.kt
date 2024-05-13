@@ -87,6 +87,7 @@ import tkpm.com.crab.objects.PaymentMethodSerializable
 import tkpm.com.crab.objects.VehicleTypePrice
 import tkpm.com.crab.objects.VehilceTypePriceResponse
 import tkpm.com.crab.utils.DirectionRequest
+import tkpm.com.crab.utils.RatingFormatter
 import java.net.URL
 import java.util.concurrent.Executors
 
@@ -765,9 +766,9 @@ class CustomerMapsActivity : AppCompatActivity(), OnMapReadyCallback {
                 }
                 driverVehicle.text = Html.fromHtml(vehicleString, Html.FROM_HTML_MODE_LEGACY)
                 driverVehicleDesc.text = vehilce.description
-                driverRate.text = result.rateDriver.toString()
+                driverRate.text = RatingFormatter.formatRating(result.rateDriver)
 
-                Picasso.get().load(driver.avatar).placeholder(R.drawable.ic_driver).into(driverAvatar)
+                Picasso.get().load(BuildConfig.BASE_URL + "files/" + driver.avatar).placeholder(R.drawable.ic_driver).into(driverAvatar)
                 if(driverLat != 0.0 && driverLng != 0.0) {
                     getDirection(
                         LatLng(driverLat, driverLng),
@@ -851,9 +852,9 @@ class CustomerMapsActivity : AppCompatActivity(), OnMapReadyCallback {
                 }
                 driverVehicle.text = Html.fromHtml(vehicleString, Html.FROM_HTML_MODE_LEGACY)
                 driverVehicleDesc.text = vehilce.description
-                driverRate.text = result.rateDriver.toString()
+                driverRate.text = RatingFormatter.formatRating(result.rateDriver)
 
-                Picasso.get().load(driver.avatar).placeholder(R.drawable.ic_driver).into(driverAvatar)
+                Picasso.get().load(BuildConfig.BASE_URL + "files/" + driver.avatar).placeholder(R.drawable.ic_driver).into(driverAvatar)
 
                 getDirection(
                     LatLng(
