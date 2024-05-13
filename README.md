@@ -220,6 +220,7 @@
 ## Yêu cầu môi trường
 
 -   Android Studio Jellyfish | 2023.3.1
+-   Android 13, minSdkVersion 28, targetSdkVersion 34, compileSdkVersion 34
 -   **secrets.properties**:
 
 ```

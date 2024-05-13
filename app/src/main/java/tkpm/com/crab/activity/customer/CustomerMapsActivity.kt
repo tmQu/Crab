@@ -656,7 +656,7 @@ class CustomerMapsActivity : AppCompatActivity(), OnMapReadyCallback {
 
             PICK_UP -> {
                 bottomDirverArrived.state = BottomSheetBehavior.STATE_EXPANDED
-                showTheBottomDriverArrived("Bạn đang trên đường")
+                showTheBottomDriverArrived("Đang trên đường tới điểm đến của bạn")
 
             }
 
