@@ -97,35 +97,41 @@ class HistoryDetailActivity : AppCompatActivity(), OnMapReadyCallback {
                 distanceTextView.text = "${data.info.distance / 1000} km"
 
                 if (isDriver) {
-                    Log.i("HistoryDetailActivity", "Driver ${data.orderedBy.avatar}")
-                    if (data.orderedBy.avatar == "") Picasso.get().load(R.drawable.grab_splash)
-                        .into(customerAvatar)
-                    else Picasso.get().load(BuildConfig.BASE_URL + "files/" + data.orderedBy.avatar).placeholder(R.drawable.grab_splash)
-                        .into(customerAvatar)
+                    if(data.orderedBy.role == "customer")
+                    {
+                        Log.i("HistoryDetailActivity", "Driver ${data.orderedBy.avatar}")
+                        if (data.orderedBy.avatar == "") Picasso.get().load(R.drawable.grab_splash)
+                            .into(customerAvatar)
+                        else Picasso.get().load(BuildConfig.BASE_URL + "files/" + data.orderedBy.avatar).placeholder(R.drawable.grab_splash)
+                            .into(customerAvatar)
 
-                    customerName.text = data.orderedBy.name
-                    if (data.info.driver_rating == null) {
-                        customerRating.visibility = View.GONE
-                        customerRateButton.visibility = View.VISIBLE
-                    } else {
-                        customerRating.rating = data.info.driver_rating.value
-                        customerRating.visibility = View.VISIBLE
-                        customerRateButton.visibility = View.GONE
+                        customerName.text = data.orderedBy.name
+                        if (data.info.driver_rating == null) {
+                            customerRating.visibility = View.GONE
+                            customerRateButton.visibility = View.VISIBLE
+                        } else {
+                            customerRating.rating = data.info.driver_rating.value
+                            customerRating.visibility = View.VISIBLE
+                            customerRateButton.visibility = View.GONE
+                        }
+
+                        customerRateButton.setOnClickListener {
+                            val intent = android.content.Intent(
+                                this@HistoryDetailActivity,
+                                DriverRatingActivity::class.java
+                            )
+                            intent.putExtra("booking_id", bookingId)
+                            startActivity(intent)
+                        }
+
+                        customerLinearLayout.visibility = View.VISIBLE
+                        driverLinearLayout.visibility = View.GONE
+                    }else {
+
                     }
 
-                    customerRateButton.setOnClickListener {
-                        val intent = android.content.Intent(
-                            this@HistoryDetailActivity,
-                            DriverRatingActivity::class.java
-                        )
-                        intent.putExtra("booking_id", bookingId)
-                        startActivity(intent)
-                    }
 
-                    customerLinearLayout.visibility = View.VISIBLE
-                    driverLinearLayout.visibility = View.GONE
-
-                } else {
+                } else{
                     if (data.driver.avatar == "") Picasso.get().load(R.drawable.grab_splash)
                         .into(driverAvatar)
                     else Picasso.get().load(BuildConfig.BASE_URL + "files/" + data.driver.avatar).placeholder(R.drawable.grab_splash)

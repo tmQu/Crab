@@ -18,6 +18,7 @@ import tkpm.com.crab.api.APIService
 import tkpm.com.crab.credential_service.CredentialService
 import tkpm.com.crab.objects.Transaction
 import tkpm.com.crab.utils.PriceDisplay
+import tkpm.com.crab.utils.TimeFormatter
 import java.text.SimpleDateFormat
 
 class DriverTransactionsHistoryAdapter(private val transactions: List<Transaction>) :
@@ -39,10 +40,8 @@ class DriverTransactionsHistoryAdapter(private val transactions: List<Transactio
         val transaction = transactions[position]
         holder.transactionAmount.text = PriceDisplay.formatVND(transaction.amount)
         holder.transactionType.text = transaction.type
-        val originalFormat = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'")
-        val targetFormat = SimpleDateFormat("dd/MM/yyyy HH:mm")
-        val date = originalFormat.parse(transaction.createdAt)
-        holder.transactionDate.text = targetFormat.format(date)
+
+        holder.transactionDate.text = TimeFormatter.GMT7Formatter(transaction.createdAt)
         holder.transactionRef.text = transaction.ref
     }
 

@@ -17,6 +17,7 @@ import tkpm.com.crab.objects.Booking
 import tkpm.com.crab.api.APICallback
 import tkpm.com.crab.api.APIService
 import tkpm.com.crab.credential_service.CredentialService
+import tkpm.com.crab.utils.TimeFormatter
 import tkpm.com.crab.utils.addressOverview
 import java.text.NumberFormat
 import java.text.SimpleDateFormat
@@ -42,8 +43,8 @@ class HistoryAdapter(val items: List<Booking>, val ctx: Context) :
 
     override fun onBindViewHolder(holder: ViewHolder, position: Int) {
         val item = items[position]
-        val date = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.US).parse(item.createdAt)
-        holder.date.text = SimpleDateFormat("dd/MM/yyyy HH:mm", Locale.US).format(date)
+
+        holder.date.text = TimeFormatter.GMT7Formatter(item.createdAt)
         holder.from.text = item.info.pickup.address
         holder.to.text = item.info.destination.address
         val formatter = NumberFormat.getCurrencyInstance()
