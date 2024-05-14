@@ -70,7 +70,7 @@
                 android:id="@+id/topupButton"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="Top up" />
+                android:text="Nạp tiền" />
 
         </LinearLayout>
 
@@ -140,7 +140,7 @@
                 android:id="@+id/payoutButton"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="Payout" />
+                android:text="Rút tiền" />
         </LinearLayout>
     </com.google.android.material.card.MaterialCardView>
 
@@ -161,7 +161,7 @@
             app:contentPadding="32dp">
 
             <ImageView
-                android:id="@+id/imageView3"
+                android:id="@+id/transaction_completed_check"
                 android:layout_width="96dp"
                 android:layout_height="96dp"
                 app:srcCompat="@drawable/ic_complete_check" />
@@ -173,7 +173,7 @@
             android:layout_height="0dp"
             android:layout_marginVertical="16dp"
             android:layout_weight="1"
-            android:text="Competed"
+            android:text="Completed"
             android:textSize="24sp"
             android:textStyle="bold" />
 
@@ -181,7 +181,7 @@
             android:id="@+id/transactionFinishButton"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="Finish"
+            android:text="Hoàn thành"
             android:textSize="16sp" />
 
     </LinearLayout>

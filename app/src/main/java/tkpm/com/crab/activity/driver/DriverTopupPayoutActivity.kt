@@ -4,6 +4,7 @@ import android.os.Bundle
 import android.util.Log
 import android.view.inputmethod.InputMethodManager
 import android.widget.Button
+import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.TextView
 import android.widget.Toast
@@ -11,6 +12,7 @@ import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
+import androidx.vectordrawable.graphics.drawable.AnimatedVectorDrawableCompat
 import com.google.android.material.card.MaterialCardView
 import com.google.android.material.textfield.TextInputLayout
 import tkpm.com.crab.R
@@ -30,6 +32,10 @@ class DriverTopupPayoutActivity : AppCompatActivity() {
             v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom)
             insets
         }
+
+        val checkIcon = findViewById<ImageView>(R.id.transaction_completed_check)
+        val drawable = AnimatedVectorDrawableCompat.create(this, R.drawable.avd_done)
+        checkIcon.setImageDrawable(drawable)
 
         val topUpMaterialCardView = findViewById<MaterialCardView>(R.id.topUpMaterialCardView)
         topUpMaterialCardView.visibility = MaterialCardView.GONE
@@ -76,6 +82,7 @@ class DriverTopupPayoutActivity : AppCompatActivity() {
                         imm.hideSoftInputFromWindow(topUpTextInputLayout.editText!!.windowToken, 0)
                         topUpMaterialCardView.visibility = MaterialCardView.GONE
                         transactionCompletedLinearLayout.visibility = LinearLayout.VISIBLE
+                        drawable?.start()
                     }
 
                     override fun onError(error: Throwable) {
@@ -85,6 +92,7 @@ class DriverTopupPayoutActivity : AppCompatActivity() {
                         imm.hideSoftInputFromWindow(topUpTextInputLayout.editText!!.windowToken, 0)
                         topUpMaterialCardView.visibility = MaterialCardView.GONE
                         transactionCompletedLinearLayout.visibility = LinearLayout.VISIBLE
+                        drawable?.start()
                     }
                 })
         }
@@ -118,6 +126,7 @@ class DriverTopupPayoutActivity : AppCompatActivity() {
                         imm.hideSoftInputFromWindow(payoutTextInputLayout.editText!!.windowToken, 0)
                         payoutMaterialCardView.visibility = MaterialCardView.GONE
                         transactionCompletedLinearLayout.visibility = LinearLayout.VISIBLE
+                        drawable?.start()
                     }
 
                     override fun onError(error: Throwable) {
@@ -127,6 +136,7 @@ class DriverTopupPayoutActivity : AppCompatActivity() {
                         imm.hideSoftInputFromWindow(payoutTextInputLayout.editText!!.windowToken, 0)
                         payoutMaterialCardView.visibility = MaterialCardView.GONE
                         transactionCompletedLinearLayout.visibility = LinearLayout.VISIBLE
+                        drawable?.start()
                     }
                 })
 
