@@ -617,16 +617,16 @@ class DriverMapActivity : AppCompatActivity(), OnMapReadyCallback {
         )
 
         findViewById<LinearLayout>(R.id.connection_bottom).setPadding(
+            32,
             0,
-            0,
-            0,
+            32,
             getNavBarHeight(this)
         )
 
         findViewById<LinearLayout>(R.id.disconnect_bottom).setPadding(
+            32,
             0,
-            0,
-            0,
+            32,
             getNavBarHeight(this)
         )
     }
