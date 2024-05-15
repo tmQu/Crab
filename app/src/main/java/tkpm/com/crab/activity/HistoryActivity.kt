@@ -99,6 +99,7 @@ class HistoryActivity : AppCompatActivity() {
 
                     list.clear()
                     list.addAll(data)
+                    list.reverse()
                     adapter.notifyDataSetChanged()
                 }
 

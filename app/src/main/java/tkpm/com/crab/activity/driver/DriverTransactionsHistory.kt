@@ -73,6 +73,7 @@ class DriverTransactionsHistory : AppCompatActivity() {
                 override fun onSuccess(data: Any) {
                     data as List<Transaction>
                     transactions.addAll(data)
+                    transactions.reverse()
                     adapter.notifyDataSetChanged()
                 }
 
