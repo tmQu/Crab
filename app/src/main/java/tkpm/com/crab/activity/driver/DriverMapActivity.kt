@@ -93,8 +93,6 @@ class DriverMapActivity : AppCompatActivity(), OnMapReadyCallback {
             findViewById<TextView>(R.id.timeout).text = "${timeOut}s"
             timeOut -= 1
             if (timeOut == 0) {
-                findViewById<LinearLayout>(R.id.timeout_group).visibility = View.GONE
-                bottomFunctionDriver.state = BottomSheetBehavior.STATE_HIDDEN
                 handler.removeCallbacksAndMessages(null)
             }
             else
@@ -381,6 +379,7 @@ class DriverMapActivity : AppCompatActivity(), OnMapReadyCallback {
             WAIT_DRIVER -> {
                 btnStep.visibility = View.GONE
                 startBtnGroup.visibility = View.VISIBLE
+                findViewById<TextView>(R.id.timeout).text = ""
             }
 
             DRIVER_COMING -> {
@@ -395,6 +394,7 @@ class DriverMapActivity : AppCompatActivity(), OnMapReadyCallback {
                     navigateMap(LatLng(booking.info.pickup.location.coordinates[1], booking.info.pickup.location.coordinates[0]))
                 }
                 headerStatus.text = "Đón khách"
+                findViewById<TextView>(R.id.timeout).text = ""
             }
 
             DRIVER_ARRIVED -> {
@@ -404,6 +404,7 @@ class DriverMapActivity : AppCompatActivity(), OnMapReadyCallback {
                 btnStep.visibility = View.VISIBLE
                 startBtnGroup.visibility = View.GONE
                 navigateBtn.visibility = View.VISIBLE
+                findViewById<TextView>(R.id.timeout).text = ""
                 navigateBtn.setOnClickListener {
                     navigateMap(LatLng(booking.info.destination.location.coordinates[1], booking.info.destination.location.coordinates[0]))
                 }
@@ -416,6 +417,7 @@ class DriverMapActivity : AppCompatActivity(), OnMapReadyCallback {
                 btnStep.visibility = View.VISIBLE
                 startBtnGroup.visibility = View.GONE
                 navigateBtn.visibility = View.VISIBLE
+                findViewById<TextView>(R.id.timeout).text = ""
                 navigateBtn.setOnClickListener {
                     navigateMap(LatLng(booking.info.destination.location.coordinates[1], booking.info.destination.location.coordinates[0]))
                 }
@@ -424,6 +426,7 @@ class DriverMapActivity : AppCompatActivity(), OnMapReadyCallback {
             FINISH_TRIP -> {
                 btnStep.visibility = View.GONE
                 startBtnGroup.visibility = View.VISIBLE
+                findViewById<TextView>(R.id.timeout).text = ""
             }
             else -> {
                 btnStep.visibility = View.GONE
@@ -431,13 +434,14 @@ class DriverMapActivity : AppCompatActivity(), OnMapReadyCallback {
                 if(timeOut != 0)
                 {
                     Log.i("timeout", timeOut.toString())
+                    findViewById<TextView>(R.id.timeout).text = ""
                     timeOutGroup.visibility = View.VISIBLE
                     val gifDrawable = GifDrawable(resources, R.drawable.ic_wait)
                     findViewById<GifImageView>(R.id.gif_timeout).setImageDrawable(gifDrawable)
                     gifDrawable.start()
                     Log.i("timeout", gifDrawable.duration.toString())
 
-                    handler.postDelayed(runnable, 1000)
+                    handler.post(runnable)
                 }
                 navigateBtn.visibility = View.INVISIBLE
                 navigateBtn.setOnClickListener {
